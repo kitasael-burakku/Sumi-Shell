@@ -1,0 +1,10 @@
+{
+  "version": "0.4.0",
+  "apiVersion": 1,
+  "settingsSchema": 4,
+  "minUpdateFrom": "0.4.0",
+  "restart": {
+    "required": false,
+    "why": ""
+  }
+}

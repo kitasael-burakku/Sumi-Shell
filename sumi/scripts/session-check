@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  session-check — ¿esta sesión es un Hyprland vivo? (ExecCondition de las unidades)
+# ----------------------------------------------------------------------------
+#  Portabilidad F5c (2026-10-10; H-04, PL-01/02). La unidad de la shell cuelga
+#  de graphical-session.target, que también activan otros escritorios: en la
+#  prueba de Plasma (2026-10-05) la shell intentó arrancar, la espera agotó el
+#  StartLimit y el rescate del Lock se activó por una causa que no lo era.
+#
+#  Medido (systemd 262): el entorno de una unidad se fija al arrancarla; un
+#  ExecStart posterior NO ve lo que el gestor importe después. Por eso aquí no
+#  se espera a la firma: se decide con lo que hay y, si el gestor ya tiene una
+#  firma viva que esta unidad no recibió, se FALLA para que Restart= arranque
+#  otra vez con el entorno nuevo.
+#
+#  Instancia viva: $XDG_RUNTIME_DIR/hypr/<firma>/hyprland.lock existe (Hyprland
+#  lo borra al salir; quedan carpetas rancias con el log), su primera línea es
+#  un PID vivo cuyo comm es «Hyprland» y, si hay WAYLAND_DISPLAY, la segunda
+#  línea coincide con él.
+#
+#  session-check            ExecCondition de sumi-shell.service
+#     0    Hyprland vivo con la firma de esta unidad: arrancar
+#     255  fallo (systemd reintenta): el gestor tiene una firma viva que esta
+#          unidad no recibió, o logind dice que la sesión es de Hyprland pero
+#          su firma no está viva (Hyprland arrancando o sin exportar su entorno)
+#     1    saltar (sin reintentos, sin OnFailure, sin rescate): no es Hyprland
+#  session-check --rescue   ExecCondition del rescate: 0 si hay un Hyprland
+#                           vivo con la firma de la unidad; si no, 1. Nunca 255.
+#
+#  Sólo lee: el entorno, archivos de $XDG_RUNTIME_DIR y /proc, `systemctl
+#  --user show-environment` y `loginctl`. Escribe su motivo en una línea (journal).
+# ============================================================================
+set -u
+
+mode="${1:-}"
+run="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+say() { printf 'session-check: %s\n' "$*"; }
+
+# alive <firma> [wayland]: ¿hay un Hyprland vivo con esa firma (y ese socket)?
+alive() {
+    local sig="$1" want="${2:-}" lock pid sock comm
+    case "$sig" in ''|*/*|.*) return 1 ;; esac
+    lock="$run/hypr/$sig/hyprland.lock"
+    [ -r "$lock" ] || return 1
+    { IFS= read -r pid; IFS= read -r sock; } < "$lock" || true
+    case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+    comm=$(cat "/proc/$pid/comm" 2>/dev/null) || return 1
+    [ "$comm" = "Hyprland" ] || return 1
+    [ -z "$want" ] || [ "$sock" = "$want" ]
+}
+
+own="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+if alive "$own" "${WAYLAND_DISPLAY:-}"; then
+    exit 0
+fi
+
+if [ "$mode" = "--rescue" ]; then
+    say "no live Hyprland for this unit; nothing to rescue"
+    exit 1
+fi
+
+# El gestor de usuario ahora (puede haber importado una firma después de que esta unidad arrancara)
+menv=$(timeout 2 systemctl --user show-environment 2>/dev/null) || menv=""
+mgr=$(printf '%s\n' "$menv" | sed -n 's/^HYPRLAND_INSTANCE_SIGNATURE=//p' | head -n 1)
+mwl=$(printf '%s\n' "$menv" | sed -n 's/^WAYLAND_DISPLAY=//p' | head -n 1)
+if [ -n "$mgr" ] && [ "$mgr" != "$own" ] && alive "$mgr" "$mwl"; then
+    say "the user manager has a live Hyprland this unit did not get; failing so it restarts with it"
+    exit 255
+fi
+
+# ¿Qué escritorio es la sesión gráfica de este usuario? (logind, no un entorno heredado)
+desk=""
+sess=$(timeout 2 loginctl show-user "$(id -un)" -p Display --value 2>/dev/null) || sess=""
+if [ -n "$sess" ]; then
+    desk=$(timeout 2 loginctl show-session "$sess" -p Desktop --value 2>/dev/null) || desk=""
+fi
+case "${desk,,}" in
+    *hyprland*)
+        say "logind says this is a Hyprland session (${desk}) but its instance is not live here yet; failing so it retries"
+        exit 255
+        ;;
+esac
+
+say "not a Hyprland session (${desk:-unknown desktop}); not starting"
+exit 1

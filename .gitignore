@@ -1,0 +1,6 @@
+# Written by matugen (template sumi-shell-colors.json); the versioned palette is sumi/colors.static.json.
+sumi/colors.json
+# Local XSettings helper, built on the author's machine.
+sumi/scripts/xsettings-no-replace.so
+__pycache__/
+*.pyc

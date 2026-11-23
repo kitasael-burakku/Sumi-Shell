@@ -1,0 +1,61 @@
+{
+  "format": "sumi-api-contract",
+  "apiVersion": 1,
+  "config": "sumi",
+  "ipc": {
+    "target": "sumi",
+    "verbs": {
+      "api": {
+        "args": [], "returns": "string",
+        "json": { "apiVersion": "number", "version": "string", "build": "string" }
+      },
+      "status": {
+        "args": [], "returns": "string",
+        "json": { "version": "string", "apiVersion": "number", "pid": "number" }
+      },
+      "reload": { "args": [], "returns": "void" },
+      "lockStatus": {
+        "args": [], "returns": "string",
+        "json": { "phase": "string", "secure": "boolean" },
+        "values": { "phase": ["unlocked", "entering", "locked", "leaving"] }
+      },
+      "open": {
+        "args": [["name", "string"], ["mon", "string"]], "returns": "bool",
+        "values": { "name": ["launcher", "wallpaper", "settings", "system", "controlCenter", "calendar", "mixer", "media",
+                             "web", "power", "clipboard", "emoji", "wifi", "bluetooth", "dashboard", "performance", "tasks",
+                             "minimizer", "services", "theme", "cli", "notifications", "login"] }
+      },
+      "peek": { "args": [["mon", "string"]], "returns": "bool" },
+      "mode": {
+        "args": [["profile", "string"]], "returns": "bool",
+        "values": { "profile": ["normal", "focus", "gaming", "cinema"] }
+      },
+      "modes": {
+        "args": [], "returns": "string",
+        "json": { "activeMode": "string", "busy": "boolean" }
+      },
+      "themeSet": {
+        "args": [["name", "string"]], "returns": "bool",
+        "values": { "name": ["static", "content", "expressive", "fidelity", "fruit-salad", "monochrome", "neutral",
+                             "rainbow", "tonal-spot", "vibrant"] }
+      },
+      "themePreset": {
+        "args": [["name", "string"]], "returns": "bool",
+        "values": { "name": ["catppuccin-mocha", "catppuccin-latte", "gruvbox-dark", "gruvbox-light"] }
+      },
+      "notifDnd": { "args": [["on", "bool"]], "returns": "bool" }
+    }
+  },
+  "shortcuts": {
+    "appid": "sumi",
+    "names": ["launcher", "wallpaper", "wallhaven", "monitor", "audio", "media", "settings", "system", "controlCenter",
+              "calendar", "calendarUi", "mixer", "web", "power", "clipboard", "emoji", "wifi", "bluetooth", "dashboard", "tasks", "minimizer",
+              "services",
+              "theme", "cli", "notifications", "peek", "barToggle", "wallRandom", "keepAwake", "recorder", "keybinds",
+              "loginScreen"]
+  },
+  "files": {
+    "tasks.json": { "version": 1, "schema": "sumi/lib/tasks-schema.js" },
+    "providers.json": { "version": 1, "schema": "sumi/lib/providers-schema.js" }
+  }
+}

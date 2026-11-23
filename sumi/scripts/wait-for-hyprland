@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  wait-for-hyprland — espera acotada a que Hyprland responda (ExecStartPre)
+# ----------------------------------------------------------------------------
+#  Portabilidad F5c (2026-10-10; H-04): el `hypr/scripts/wait-for-hyprland.sh`
+#  del rice, dentro del proyecto, con el mismo contrato (lo comprueban las
+#  pruebas de tools/lock/test-recovery.py). La identidad de la sesión la decide
+#  antes `session-check` (ExecCondition); esto sólo espera a que el socket
+#  responda. Agotar el plazo FALLA al llamador: arrancar un cliente de Wayland
+#  sin su compositor sólo produce otra caída; la política de reintentos es de
+#  cada unidad. El del rice sigue para sus propias unidades (hypridle,
+#  wallpaper, infinite-desktop).
+#
+#  Uso: wait-for-hyprland [segundos=5]   (entero 0–9999)
+# ============================================================================
+
+set -u
+
+wait_seconds="${1:-5}"
+if [[ ! "$wait_seconds" =~ ^[0-9]+$ ]] || ((${#wait_seconds} > 4)); then
+    echo "wait-for-hyprland: expected an integer timeout (0–9999 seconds)" >&2
+    exit 2
+fi
+wait_seconds=$((10#$wait_seconds))
+command -v hyprctl >/dev/null 2>&1 || {
+    echo "wait-for-hyprland: hyprctl is unavailable" >&2
+    exit 127
+}
+
+deadline=$((SECONDS + wait_seconds))
+while ! timeout --kill-after=1 1 hyprctl monitors >/dev/null 2>&1; do
+    if ((SECONDS >= deadline)); then
+        echo "wait-for-hyprland: compositor unavailable after ${wait_seconds}s" >&2
+        exit 1
+    fi
+    sleep 0.1
+done
+
+exit 0

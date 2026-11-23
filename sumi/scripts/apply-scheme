@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  apply-scheme <scheme-name> — escribe el esquema de matugen y regenera.
+# ----------------------------------------------------------------------------
+#  Lo llama `services/Colors.setScheme()` (Fase 10.d). Existe para romper el
+#  bucle: antes `setScheme` ejecutaba `fish -c 'minimaru theme <x>'`, y desde
+#  10.d `minimaru theme <x>` rutea de vuelta a `ipc themeSet` → `setScheme` →
+#  `minimaru theme` → … Esto hace directamente lo que hacía la rama con
+#  argumento de `__minimaru_theme`, sin volver a llamar a la CLI.
+#
+#  No calcula color (ADR-2/ADR-12/ADR-28): sólo persiste el esquema y llama a
+#  `matugen_reload.sh`, exactamente como `theme.sh` / `minimaru theme <x>`.
+#
+#  `apply-scheme --write-only <scheme>` (rediseño 10B): sólo escribe el esquema, sin tocar el
+#  sentinel ni regenerar. Lo usa Restore previous ANTES de aplicar el fondo anterior: el
+#  `matugen_reload.sh` de ese apply ya regenera con el esquema de entonces (una vez, no dos).
+#
+#  Portabilidad F4d (2026-10-08): `apply-scheme <scheme> -- <orden de regenerar…>`. La orden la da el
+#  proveedor de tema (la del autor: `bash ~/.config/hypr/scripts/matugen_reload.sh`, la misma que antes iba
+#  fija aquí; la propia: scripts/theme-provider.py … reload); se le añade el fondo de todas. Sin `--`, sólo
+#  escribe el esquema y el sentinel (no hay a quién pedir que regenere).
+# ============================================================================
+set -u
+
+write_only=0
+if [ "${1:-}" = "--write-only" ]; then
+    write_only=1
+    shift
+fi
+scheme="${1:?apply-scheme: scheme name required}"
+shift
+reload=()
+if [ "${1:-}" = "--" ]; then
+    shift
+    reload=("$@")
+fi
+
+# Lista blanca — la misma que `matugen --help` y `theme.sh`.
+case "$scheme" in
+    scheme-content|scheme-expressive|scheme-fidelity|scheme-fruit-salad|\
+    scheme-monochrome|scheme-neutral|scheme-rainbow|scheme-tonal-spot|scheme-vibrant) ;;
+    *) echo "apply-scheme: unknown scheme '$scheme'" >&2; exit 2 ;;
+esac
+
+state="${XDG_STATE_HOME:-}"
+case "$state" in
+    /*) ;;
+    *) state="$HOME/.local/state" ;;
+esac
+mg="$state/sumi-shell/theme"
+mkdir -p "$mg"
+printf '%s' "$scheme" > "$mg/scheme"
+[ "$write_only" = 1 ] && exit 0
+touch "$mg/enabled"
+
+wall="$(cat "$state/sumi-shell/current-wallpaper" 2>/dev/null)"
+if [ "${#reload[@]}" -gt 0 ] && [ -n "$wall" ] && [ -f "$wall" ]; then
+    exec "${reload[@]}" "$wall"
+fi
+# Sin wallpaper: el esquema queda guardado, el color llega con el siguiente.
+exit 0

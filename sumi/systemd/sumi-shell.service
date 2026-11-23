@@ -1,0 +1,43 @@
+# Sumi Shell como servicio de usuario (portabilidad F5c, 2026-10-10; H-04, PL-01/02).
+# Instalación a mano (hasta el paquete de F6): copiar a ~/.config/systemd/user/ junto con
+# sumi-lock-rescue.service, `systemctl --user daemon-reload` y `systemctl --user enable sumi-shell`.
+# Las rutas suponen la shell en ~/.config/quickshell/sumi.
+#
+# La unidad cuelga de graphical-session.target, que activan también otros escritorios: ExecCondition
+# (scripts/session-check) la SALTA si la sesión no es un Hyprland vivo (sin reintentos, sin OnFailure, sin
+# rescate) y la hace fallar —para que Restart= la arranque otra vez— si Hyprland aún no le había pasado su
+# entorno. Requisito (H-05): HYPRLAND_INSTANCE_SIGNATURE y WAYLAND_DISPLAY en el gestor de usuario (Hyprland
+# los exporta él mismo salvo con HYPRLAND_NO_SD_VARS; uwsm también).
+[Unit]
+Description=Sumi Shell — Quickshell desktop shell (Minimaru)
+Documentation=file://%h/.config/quickshell/sumi/README.md
+PartOf=graphical-session.target
+# hyprland-session.service es la del rice del autor; si no existe, el orden no hace nada.
+After=graphical-session.target hyprland-session.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+# docs/lock/CONFIGURACION.md §4: si la shell agota sus reinicios con la sesión bloqueada,
+# el rescate lanza hyprlock sobre el bloqueo muerto.
+OnFailure=sumi-lock-rescue.service
+
+[Service]
+Type=simple
+# Memoria (2026-11-09, docs/MEMORIA-2026-11-09.md en ~/Projects/Quickshell): con THP del sistema en «always»,
+# khugepaged llena de páginas enormes las regiones a medio usar de jemalloc (el asignador de quickshell) y la RSS
+# crece sin que la shell pida nada. `thp:never` hace que jemalloc marque SÓLO sus regiones con MADV_NOHUGEPAGE:
+# en banco, −29 MiB de PSS en frío y −74 MiB tras usar todas las interfaces; misma memoria pedida, CPU en reposo igual.
+# No se usa MemoryTHP=: se hereda por `systemd-run --scope` y quitaría THP a cada app lanzada desde la shell.
+# Un quickshell sin jemalloc ignora la variable; las apps sólo la notan si usan el jemalloc del sistema (fd, BIND).
+Environment=MALLOC_CONF=thp:never
+ExecCondition=%h/.config/quickshell/sumi/scripts/session-check
+ExecStartPre=%h/.config/quickshell/sumi/scripts/wait-for-hyprland
+ExecStart=/usr/bin/qs -c sumi --no-duplicate
+ExecReload=/usr/bin/qs -c sumi ipc call sumi reload
+Restart=on-failure
+RestartSec=2
+# Pide el rescate al pararse (`--no-block` dentro: que parar la shell no espere sus 3 s, y viceversa).
+# No lo pide si la unidad se saltó por su ExecCondition (SERVICE_RESULT=exec-condition): no había Hyprland.
+ExecStopPost=-%h/.config/quickshell/sumi/scripts/sumi-lock rescue-request
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "legacy": "IosevkaTerm Nerd Font Propo",
+  "presets": [
+    {
+      "id": "iosevka",
+      "label": "Iosevka",
+      "ui": [
+        "IosevkaTerm Nerd Font Propo",
+        "IosevkaTerm Nerd Font",
+        "IosevkaTerm NF",
+        "Iosevka"
+      ],
+      "mono": [
+        "IosevkaTerm Nerd Font Propo",
+        "IosevkaTerm Nerd Font Mono",
+        "IosevkaTerm NFM",
+        "Iosevka"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "maple-mono",
+      "label": "Maple Mono",
+      "ui": [
+        "Maple Mono",
+        "Maple Mono NF",
+        "Maple Mono Normal NF",
+        "Maple Mono Nerd Font Mono"
+      ],
+      "mono": [
+        "Maple Mono",
+        "Maple Mono NF",
+        "Maple Mono Normal NF",
+        "Maple Mono Nerd Font Mono"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "jetbrains-mono",
+      "label": "JetBrains Mono",
+      "ui": [
+        "JetBrains Mono",
+        "JetBrainsMono Nerd Font Mono",
+        "JetBrainsMono NFM",
+        "JetBrainsMono Nerd Font"
+      ],
+      "mono": [
+        "JetBrains Mono",
+        "JetBrainsMono Nerd Font Mono",
+        "JetBrainsMono NFM",
+        "JetBrainsMono Nerd Font"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "noto-sans",
+      "label": "Noto Sans",
+      "ui": [
+        "Noto Sans"
+      ],
+      "mono": [
+        "IosevkaTerm Nerd Font Propo"
+      ],
+      "proportional": true
+    },
+    {
+      "id": "noto-sans-mono",
+      "label": "Noto Sans Mono",
+      "ui": [
+        "Noto Sans Mono"
+      ],
+      "mono": [
+        "Noto Sans Mono"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "ibm-plex-mono",
+      "label": "IBM Plex Mono",
+      "ui": [
+        "IBM Plex Mono",
+        "BlexMono Nerd Font Mono",
+        "BlexMono NFM"
+      ],
+      "mono": [
+        "IBM Plex Mono",
+        "BlexMono Nerd Font Mono",
+        "BlexMono NFM"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "inter",
+      "label": "Inter",
+      "ui": [
+        "Inter",
+        "Inter Variable"
+      ],
+      "mono": [
+        "IosevkaTerm Nerd Font Propo"
+      ],
+      "proportional": true
+    },
+    {
+      "id": "fira-code",
+      "label": "Fira Code",
+      "ui": [
+        "Fira Code",
+        "FiraCode Nerd Font Mono",
+        "FiraCode NFM",
+        "FiraCode Nerd Font"
+      ],
+      "mono": [
+        "Fira Code",
+        "FiraCode Nerd Font Mono",
+        "FiraCode NFM",
+        "FiraCode Nerd Font"
+      ],
+      "proportional": false
+    },
+    {
+      "id": "hack",
+      "label": "Hack",
+      "ui": [
+        "Hack",
+        "Hack Nerd Font Mono",
+        "Hack NFM",
+        "Hack Nerd Font"
+      ],
+      "mono": [
+        "Hack",
+        "Hack Nerd Font Mono",
+        "Hack NFM",
+        "Hack Nerd Font"
+      ],
+      "proportional": false
+    }
+  ],
+  "fallback": {
+    "ui": [
+      "IosevkaTerm Nerd Font Propo",
+      "Noto Sans"
+    ],
+    "mono": [
+      "IosevkaTerm Nerd Font Propo",
+      "Noto Sans Mono"
+    ]
+  },
+  "icons": [
+    "IosevkaTerm Nerd Font Propo",
+    "IosevkaTerm Nerd Font Mono",
+    "IosevkaTerm Nerd Font",
+    "Symbols Nerd Font Mono",
+    "Symbols Nerd Font"
+  ]
+}

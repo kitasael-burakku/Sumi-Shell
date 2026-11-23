@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# sumi-lock-helper
+# ============================================================================
+#  sumi-lock — el camino hacia el bloqueo de Sumi Shell, con red de seguridad
+# ----------------------------------------------------------------------------
+#  Portabilidad F5b (2026-10-10; H-04, H-07, HC-60): es el antiguo
+#  `~/.config/hypr/scripts/lock.sh` del rice, ahora dentro del proyecto. La
+#  lógica, los argv y los tiempos son los mismos (tools/f5/argv-before.json
+#  K1–K5; prueba diferencial en tools/f5/lock-helper-test.py). El `lock.sh` del
+#  rice queda como envoltorio que ejecuta éste (y, si faltara, hyprlock).
+#
+#  Lo llaman `lock_cmd` y `before_sleep_cmd` de hypridle (tras `loginctl
+#  lock-session`, que piden el botón Lock, el atajo y la inactividad) y el
+#  rescate (sumi-lock-rescue.service). Intenta que la shell bloquee por su
+#  IPC; si no lo consigue, cae a hyprlock. Tiempos MEDIDOS (fase 15, LK-11):
+#  con la shell parada, hyprlock a los 1,6 s del lock-session (el IPC falla al
+#  momento y quedan las 15 vueltas de 0,1 s); con la shell colgada, ≈ 3,6 s
+#  (+2 s del timeout del IPC); con Hyprland también colgado, hasta ≈ 19,5 s.
+#
+#  sumi-lock [session]   bloquear (la shell; si no, hyprlock)
+#  sumi-lock instant     igual, sin animación (antes de suspender)
+#  sumi-lock rescue      sólo desde sumi-lock-rescue.service: espera 3 s
+#                           y lanza hyprlock si sigue bloqueada y nadie la sostiene
+#  sumi-lock rescue-request
+#                           ExecStopPost de la unidad de la shell (F5c): pide el
+#                           rescate, salvo que la unidad se saltara por su
+#                           ExecCondition (no era una sesión de Hyprland)
+#
+#  Argv puro: nada de lo que llega por `$1` se interpola en una cadena de
+#  shell (SECURITY.md regla 3); sólo se compara contra literales. La marca de
+#  la segunda línea la busca la detección de quién atiende el bloqueo (F5d).
+# ============================================================================
+set -u
+
+locked() {
+    [ "$(timeout 1 hyprctl locked 2>/dev/null)" = "true" ]
+}
+
+# A failed status query must not suppress recovery of an existing lock:
+# Hyprland remains the source of truth. Only explicit shutdown states skip it.
+session_stopping() {
+    local manager_state
+    manager_state=$(timeout --kill-after=1 1 systemctl --user is-system-running 2>/dev/null) || :
+    [[ "$manager_state" = stopping || "$manager_state" = offline ]]
+}
+
+# hyprlock 0.9 se niega a arrancar sin hyprlock.conf («Could not find config»): en una instalación sin la config del rice
+# el rescate dejaba la sesión bloqueada SIN cliente (medido en VM Arch, hyprlock 0.9.7, 2026-11-07). Se usa la del
+# usuario si existe donde hyprlock la busca; si no, la que trae el paquete de hyprlock.
+run_hyprlock() {
+    local d dirs
+    for d in "${XDG_CONFIG_HOME:-$HOME/.config}" "$HOME"; do
+        [ -r "$d/hypr/hyprlock.conf" ] && exec hyprlock
+    done
+    IFS=: read -r -a dirs <<< "${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for d in "${dirs[@]}" /etc/xdg; do
+        [ -n "$d" ] && [ -r "$d/hypr/hyprlock.conf" ] && exec hyprlock
+    done
+    if [ -r /usr/share/hypr/hyprlock.conf ]; then
+        logger -t sumi-lock "no hyprlock.conf of yours: using /usr/share/hypr/hyprlock.conf"
+        exec hyprlock --config /usr/share/hypr/hyprlock.conf
+    fi
+    logger -t sumi-lock "no hyprlock.conf anywhere: hyprlock may refuse to start"
+    exec hyprlock
+}
+
+case "${1:-}" in
+    rescue-request)
+        # Medido (systemd 262): ExecStopPost corre también cuando ExecCondition salta la unidad, con
+        # SERVICE_RESULT=exec-condition. Saltada = no era Hyprland = no hay bloqueo que rescatar.
+        [ "${SERVICE_RESULT:-}" = "exec-condition" ] && exit 0
+        exec systemctl --user start --no-block sumi-lock-rescue.service
+        ;;
+    rescue)
+        session_stopping && exit 0
+        locked || exit 0                                  # compositor ausente o sin bloqueo
+        sleep 3
+        session_stopping && exit 0
+        locked || exit 0                                  # nadie bloquea: nada que rescatar
+        pgrep -x hyprlock >/dev/null 2>&1 && exit 0        # hyprlock ya sostiene la sesión
+        st=$(timeout 2 "${SUMI_QS:-qs}" -c sumi ipc call sumi lockStatus 2>/dev/null)
+        case "$st" in
+            *'"phase":"entering"'*|*'"phase":"locked"'*|*'"phase":"leaving"'*)
+                exit 0 ;;                                   # la shell volvió y ya se ocupa
+        esac
+        session_stopping && exit 0
+        locked || exit 0                                  # pudo desaparecer durante el IPC
+        logger -t sumi-lock "rescue: dead lock, starting hyprlock"
+        run_hyprlock
+        ;;
+    instant)
+        reason=instant
+        ;;
+    *)
+        reason=session
+        ;;
+esac
+
+locked && exit 0                                            # ya bloqueada, por quien sea (R8)
+
+timeout 2 "${SUMI_QS:-qs}" -c sumi ipc call sumi lockNow "$reason" >/dev/null 2>&1
+
+i=0
+while [ "$i" -lt 15 ]; do
+    locked && exit 0
+    sleep 0.1
+    i=$((i + 1))
+done
+
+logger -t sumi-lock "shell did not lock ($reason); falling back to hyprlock"
+run_hyprlock

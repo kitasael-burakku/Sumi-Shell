@@ -1,0 +1,19 @@
+{
+  "_comment": "Minimaru — paleta estática de Sumi Shell (baseline si matugen está apagado, y fallback si colors.json falta o trae un valor inválido). Cada hex sale de un archivo *.static.* ya existente del rice; ver el mapeo en ~/Projects/Quickshell/docs/THEME.md. Los cuatro tintes de iconografía (secondary, *_fixed) no salen de un *.static.* de otra app porque ninguna los usa: son derivados del teal y el tan de esta misma paleta, a la misma claridad.",
+  "surface": "#1a1a1a",
+  "surface_container_lowest": "#0d0d0d",
+  "surface_container_low": "#202020",
+  "surface_container": "#262626",
+  "surface_container_high": "#2f2f2f",
+  "on_surface": "#e8e8e8",
+  "on_surface_variant": "#a8a8a8",
+  "outline": "#6a6a62",
+  "primary": "#90cece",
+  "on_primary": "#0d0d0d",
+  "tertiary": "#cfbf9f",
+  "error": "#b85c50",
+  "secondary": "#ceb6df",
+  "primary_fixed": "#b2e2e2",
+  "secondary_fixed": "#e5cdf5",
+  "tertiary_fixed": "#e9ddc1"
+}

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "comment": "T4: families written to OTHER apps, per preset of font-catalog.json. interface = GTK/Qt UI text; code = GTK monospace, Qt fixed, terminal and editor (must be monospaced or dual-width in Fontconfig). The first installed name is written; any listed name (installed or not) counts as already equivalent and is left alone.",
+  "presets": {
+    "iosevka": {
+      "interface": ["IosevkaTerm Nerd Font Propo", "IosevkaTerm Nerd Font", "IosevkaTerm NF", "Iosevka", "Iosevka Aile"],
+      "code": ["IosevkaTerm Nerd Font", "IosevkaTerm NF", "IosevkaTerm Nerd Font Mono", "IosevkaTerm NFM", "Iosevka Term", "Iosevka"]
+    },
+    "maple-mono": {
+      "interface": ["Maple Mono", "Maple Mono NF", "Maple Mono Normal NF", "Maple Mono Nerd Font Mono"],
+      "code": ["Maple Mono", "Maple Mono NF", "Maple Mono Normal NF", "Maple Mono Nerd Font Mono"]
+    },
+    "jetbrains-mono": {
+      "interface": ["JetBrains Mono", "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono NFM", "JetBrainsMono Nerd Font Propo"],
+      "code": ["JetBrains Mono", "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrainsMono Nerd Font Mono", "JetBrainsMono NFM"]
+    },
+    "noto-sans": {
+      "interface": ["Noto Sans"],
+      "code": ["IosevkaTerm Nerd Font", "IosevkaTerm NF", "IosevkaTerm Nerd Font Mono", "IosevkaTerm NFM", "Iosevka Term", "Iosevka"]
+    },
+    "noto-sans-mono": {
+      "interface": ["Noto Sans Mono"],
+      "code": ["Noto Sans Mono"]
+    },
+    "ibm-plex-mono": {
+      "interface": ["IBM Plex Mono", "BlexMono Nerd Font", "BlexMono Nerd Font Mono", "BlexMono NFM"],
+      "code": ["IBM Plex Mono", "BlexMono Nerd Font", "BlexMono Nerd Font Mono", "BlexMono NFM"]
+    },
+    "inter": {
+      "interface": ["Inter", "Inter Variable"],
+      "code": ["IosevkaTerm Nerd Font", "IosevkaTerm NF", "IosevkaTerm Nerd Font Mono", "IosevkaTerm NFM", "Iosevka Term", "Iosevka"]
+    },
+    "fira-code": {
+      "interface": ["Fira Code", "FiraCode Nerd Font", "FiraCode Nerd Font Mono", "FiraCode NFM", "FiraCode Nerd Font Propo"],
+      "code": ["Fira Code", "FiraCode Nerd Font", "FiraCode Nerd Font Mono", "FiraCode NFM"]
+    },
+    "hack": {
+      "interface": ["Hack", "Hack Nerd Font", "Hack Nerd Font Mono", "Hack NFM", "Hack Nerd Font Propo"],
+      "code": ["Hack", "Hack Nerd Font", "Hack Nerd Font Mono", "Hack NFM"]
+    }
+  }
+}

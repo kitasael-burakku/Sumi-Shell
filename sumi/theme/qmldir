@@ -1,0 +1,9 @@
+singleton Theme Theme.qml
+singleton Motion Motion.qml
+singleton Metrics Metrics.qml
+singleton Typography Typography.qml
+singleton Style Style.qml
+SpringValue SpringValue.qml
+Reveal Reveal.qml
+RevealEffect RevealEffect.qml
+ShapeRevealEffect ShapeRevealEffect.qml

@@ -1,0 +1,21 @@
+# Rescate del Lock de Sumi Shell (portabilidad F5c, 2026-10-10; docs/lock/CONFIGURACION.md §4).
+# Lo piden el ExecStopPost y el OnFailure de sumi-shell.service; a mano, desde una TTY:
+# `systemctl --user start sumi-lock-rescue`. Sólo lanza hyprlock sobre un bloqueo que nadie sostiene.
+[Unit]
+Description=Sumi Shell — hyprlock sobre un bloqueo sin cliente
+# ExecStopPost/OnFailure can request this during user-manager shutdown. Avoid
+# pulling basic.target (and its sockets/timers) into a stop transaction.
+# sumi-lock rescue skips a stopping manager or an absent compositor.
+DefaultDependencies=no
+
+[Service]
+Type=exec
+# app.slice also has shutdown dependencies. This is the user's root slice,
+# not the system root slice; the service remains unprivileged.
+Slice=-.slice
+# Sin un Hyprland vivo con la firma de esta unidad no hay bloqueo que rescatar (otra sesión, o el cierre).
+ExecCondition=%h/.config/quickshell/sumi/scripts/session-check --rescue
+ExecStart=%h/.config/quickshell/sumi/scripts/sumi-lock rescue
+# La salida de hyprlock lanzado aquí, con su propia etiqueta: `journalctl -t sumi-lock` cuenta sólo las caídas
+# (líneas de logger del helper), como desde L7. Sin esto la etiqueta saldría del ejecutable (antes, «lock.sh»).
+SyslogIdentifier=sumi-lock-rescue

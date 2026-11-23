@@ -1,0 +1,14 @@
+# Rutas literales relativas a sumi/ que NO forman parte del runtime instalado (no son glob).
+# Fuente única desde F6d (D8, 2026-10-13): la leen install.sh install y el empaquetado. Origen: F1b.
+battery-probe.qml
+lock-preview.qml
+notif-probe.qml
+preview-components.qml
+preview-notifications.qml
+preview-power.qml
+preview-settings.qml
+preview-webhub.qml
+probe-settings.qml
+sleep-probe.qml
+README.md
+colors.json

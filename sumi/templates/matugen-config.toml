@@ -1,0 +1,13 @@
+# Config MÍNIMA de matugen de Sumi Shell (portabilidad F4d, 2026-10-08). La usa el proveedor de tema propio
+# (scripts/theme-provider.py y la preview) cuando el usuario no declara la suya en providers.json: genera SÓLO
+# la paleta de la shell. Ninguna otra aplicación (GTK, Qt, terminales…) se toca desde aquí: eso es de la config
+# de matugen de cada usuario.
+#
+# Las rutas relativas se resuelven desde esta carpeta (scripts/theme_paths.py, como matugen); la salida
+# convencional se lleva a $XDG_STATE_HOME/sumi-shell/colors.json. Sin post_hook: la shell vigila el archivo.
+[config]
+prefer = "saturation"
+
+[templates.sumi_shell]
+input_path = 'matugen-colors.json'
+output_path = '~/.local/state/sumi-shell/colors.json'

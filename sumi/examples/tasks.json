@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "disk-space",
+      "label": "Disk space",
+      "desc": "Show available space on local file systems",
+      "glyph": "folder",
+      "argv": ["df", "-h"],
+      "runs": "panel"
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  notif-server — el servidor de notificaciones del shell: encenderlo y apagarlo
+#  (ADR-29; docs/FASE9/NOTIFICACIONES.md §10.3, medido en las Fases 0 y 1)
+#
+#    notif-server status   dueño del nombre, activación, ajuste
+#    notif-server shell    el shell sirve las notificaciones
+#    notif-server off      NADIE las sirve (quita la activación lo primero)
+#
+#  SwayNC era la otra mitad de este script hasta la Fase 4 (2026-09-22), que lo
+#  retiró del rice y lo desinstaló: `swaync` como verbo ya no existe y `off`
+#  ocupa su sitio. Lo que sigue valiendo, medido:
+#   · org.freedesktop.Notifications tiene UN dueño. El ajuste se lee sólo al
+#     arrancar y destruir el servidor NO suelta el nombre: encender o apagar
+#     exige reiniciar el shell, en los dos sentidos.
+#   · El archivo de activación del usuario lo arranca cuando llega algo con el
+#     shell caído, en vez de perderse; en un directorio recién creado no se ve
+#     hasta ReloadConfig. NUNCA puede quedar con el servidor apagado (cada
+#     notify-send esperaría 25 s): al apagar se borra LO PRIMERO.
+#   · Sin servidor no hay aviso silencioso: quien envía recibe el error en el
+#     acto, que es lo que se quería en vez de una pérdida callada.
+#
+#  El ajuste lo escribe el propio shell por IPC (`notifServer`, un escritor); sólo
+#  si el shell no responde se edita settings.json con jq, que el shell relee.
+#  Nada de `sh -c` con datos (SECURITY regla 3).
+# ============================================================================
+set -u
+
+ACT_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/dbus-1/services"
+ACT="$ACT_DIR/org.freedesktop.Notifications.service"
+DIRECT="$(dirname -- "$0")/notif-server-direct.py"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/sumi-shell"
+# Desde la fase 3 del rediseño (2026-09-24) los ajustes viven en XDG_CONFIG_HOME, anidados
+# (schemaVersion 2). El plano de XDG_STATE_HOME es el de antes: sólo se toca si el nuevo aún
+# no existe (el shell no ha migrado), porque es el que el shell migrará al arrancar.
+SETTINGS="${XDG_CONFIG_HOME:-$HOME/.config}/sumi-shell/settings.json"
+LEGACY="$STATE_DIR/settings.json"
+KEY='.shell.integrations.notificationServer'
+if [ ! -f "$SETTINGS" ] && [ -f "$LEGACY" ]; then
+    SETTINGS="$LEGACY"
+    KEY='.notificationServer'
+fi
+
+say()  { printf '  %s\n' "$*"; }
+step() { printf '\n▸ %s\n' "$*"; }
+# Un fallo a mitad del encendido deja el sistema sin servidor, pero coherente
+# (SWITCHING); al apagar, sólo avisa.
+SWITCHING=0
+die() {
+    printf '\n✗ notif-server: %s\n' "$*" >&2
+    if [ "$SWITCHING" = 1 ]; then
+        SWITCHING=0
+        printf '✗ el cambio falló a mitad: vuelta atrás automática\n' >&2
+        cmd_off
+    fi
+    exit 1
+}
+
+owner_comm() { busctl --user status org.freedesktop.Notifications 2>/dev/null | sed -n 's/^Comm=//p'; }
+owner_pid()  { busctl --user status org.freedesktop.Notifications 2>/dev/null | sed -n 's/^PID=//p'; }
+
+# ¿Es el shell el dueño? Por PID contra la unidad, NUNCA por el nombre del proceso:
+# medido que tras un SIGSEGV el gestor de caídas de Quickshell se reinicia en el
+# mismo PID y el proceso pasa de `qs` a `quickshell`.
+shell_owns() {
+    local main
+    main=$(systemctl --user show -p MainPID --value sumi-shell.service 2>/dev/null)
+    [ -n "$main" ] && [ "$main" != 0 ] && [ "$(owner_pid)" = "$main" ]
+}
+
+wait_shell_owner() {   # wait_shell_owner <segundos>
+    local n=$(( $1 * 10 ))
+    while [ "$n" -gt 0 ]; do
+        shell_owns && return 0
+        sleep 0.1; n=$((n - 1))
+    done
+    return 1
+}
+
+broker_reload() {
+    busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null
+}
+
+activatable() {
+    busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ListActivatableNames \
+        | tr ' ' '\n' | grep -qx '"org.freedesktop.Notifications"'
+}
+
+shell_ipc() { qs -c sumi ipc call sumi "$@" 2>/dev/null; }
+
+shell_ready() {   # el shell responde por IPC (tras un reinicio tarda unos segundos)
+    local n=$(( ${1:-30} * 2 ))
+    while [ "$n" -gt 0 ]; do
+        shell_ipc status >/dev/null && return 0
+        sleep 0.5; n=$((n - 1))
+    done
+    return 1
+}
+
+owned_systemd_act() {
+    [ -f "$ACT" ] && [ ! -L "$ACT" ] &&
+        cmp -s "$ACT" <(printf '[D-BUS Service]\nName=org.freedesktop.Notifications\nExec=/bin/false\nSystemdService=sumi-shell.service\n')
+}
+
+# La que escribía esta misma herramienta antes del cambio de nombre (Kitasan-Shell, 2026-11-07): byte a byte, es nuestra
+# y se puede sustituir o quitar; cualquier otra cosa sigue siendo ajena.
+legacy_systemd_act() {
+    [ -f "$ACT" ] && [ ! -L "$ACT" ] &&
+        cmp -s "$ACT" <(printf '[D-BUS Service]\nName=org.freedesktop.Notifications\nExec=/bin/false\nSystemdService=kitasan-shell.service\n')
+}
+
+setting_on_disk() { jq -r "$KEY // false" "$SETTINGS" 2>/dev/null; }
+
+set_setting() {   # true | false
+    local want=$1 n=30
+    if ! shell_ipc notifServer "$want" >/dev/null; then
+        say "el shell no responde: settings.json a mano (jq)"
+        local tmp
+        tmp=$(mktemp "$SETTINGS.XXXXXX") || die "mktemp"
+        jq --argjson v "$want" "$KEY = \$v" "$SETTINGS" > "$tmp" || { rm -f "$tmp"; die "jq sobre $SETTINGS"; }
+        chmod --reference="$SETTINGS" "$tmp" 2>/dev/null
+        mv "$tmp" "$SETTINGS"
+    fi
+    # Settings escribe su JSON al momento pero en otro hilo: esperar a verlo en disco
+    # antes de reiniciar, o el shell nuevo leería el valor viejo.
+    while [ "$n" -gt 0 ]; do
+        [ "$(setting_on_disk)" = "$want" ] && return 0
+        sleep 0.1; n=$((n - 1))
+    done
+    die "settings.json no llegó a notificationServer=$want"
+}
+
+restart_shell() {
+    systemctl --user restart sumi-shell.service || die "no se pudo reiniciar sumi-shell"
+    shell_ready 30 || die "el shell no responde por IPC tras reiniciar"
+}
+
+cmd_status() {
+    local comm pid
+    comm=$(owner_comm); pid=$(owner_pid)
+    echo "servidor de notificaciones"
+    say "dueño del nombre:      ${comm:-nadie}${pid:+ (pid $pid)}$(shell_owns && echo ' = sumi-shell')"
+    if [ -f "$ACT" ]; then say "activación del shell:  sí$(activatable && echo ' (activable)' || echo ' (¡no activable! falta ReloadConfig)')"
+    else say "activación del shell:  no"; fi
+    say "ajuste en disco:       notificationServer=$(setting_on_disk)"
+    local st
+    if st=$(shell_ipc status); then
+        say "shell:                 $(printf '%s' "$st" | jq -c '.notifs | {enabled, restartPending, running, count, unread, dnd}')"
+    else
+        say "shell:                 no responde"
+    fi
+}
+
+# El shell pasa a ser el servidor. Si algo falla a mitad, se apaga solo.
+cmd_shell() {
+    shell_owns && owned_systemd_act && { say "ya lo es"; cmd_status; return 0; }
+    if [ -e "$ACT" ] || [ -L "$ACT" ]; then
+        owned_systemd_act || legacy_systemd_act || die "$ACT cambió o pertenece a otro servicio; no se reemplaza"
+    fi
+    systemctl --user is-active --quiet sumi-shell.service || die "sumi-shell no está activo"
+    command -v jq >/dev/null || die "falta jq"
+    local other
+    other=$(owner_comm)
+    if [ -n "$other" ] && ! shell_owns; then
+        die "otro proceso tiene el nombre ($other): páralo antes"
+    fi
+    SWITCHING=1
+
+    step "1 · encender el servidor del shell y reiniciarlo (el ajuste se lee al arrancar)"
+    set_setting true
+    restart_shell
+    [ "$(shell_ipc status | jq -r '.notifs.enabled')" = "true" ] || die "el shell arrancó con el servidor apagado"
+    wait_shell_owner 10 || die "el shell no tomó el nombre (dueño: $(owner_comm))"
+    say "shell: $(shell_ipc status | jq -c '.notifs | {enabled, running}') · dueño: $(owner_comm) (pid $(owner_pid))"
+
+    # Después de que el shell tenga el nombre, nunca antes: con la activación
+    # puesta y el servidor apagado, cada notify-send esperaría 25 s (§10.2.3).
+    step "2 · activación hacia el shell (para caídas y reinicios)"
+    mkdir -p "$ACT_DIR"
+    if legacy_systemd_act; then
+        rm -f "$ACT"           # la del nombre viejo (comprobada byte a byte): se sustituye
+    fi
+    if ! owned_systemd_act; then
+        ( set -C; printf '[D-BUS Service]\nName=org.freedesktop.Notifications\nExec=/bin/false\nSystemdService=sumi-shell.service\n' > "$ACT" ) \
+            || die "no se pudo crear $ACT sin reemplazar otro archivo"
+    fi
+    broker_reload || die "ReloadConfig falló"
+    activatable || die "no activable tras ReloadConfig"
+    say "$ACT"
+
+    SWITCHING=0
+    step "hecho"
+    cmd_status
+}
+
+# Nadie sirve las notificaciones. Idempotente: sirve también para rematar un
+# encendido a medias. Desde la Fase 4 esto NO es una vuelta atrás a otro
+# servidor: deja el escritorio sin ninguno, y quien envíe recibirá un error.
+cmd_off() {
+    step "1 · quitar la activación hacia el shell (lo primero: §10.2.3)"
+    if { [ -e "$ACT" ] || [ -L "$ACT" ]; } && ! owned_systemd_act && ! legacy_systemd_act; then
+        die "$ACT cambió o pertenece a otro servicio; no se borra"
+    fi
+    rm -f "$ACT"
+    broker_reload || true
+    activatable && say "aviso: sigue activable, ¿otro archivo de activación?" || say "hecho"
+
+    step "2 · apagar el servidor del shell y reiniciarlo (al morir suelta el nombre)"
+    if systemctl --user is-active --quiet sumi-shell.service; then
+        set_setting false
+        restart_shell
+    else
+        set_setting false
+        say "el shell no estaba activo: queda apagado en disco"
+    fi
+
+    step "hecho — nadie sirve org.freedesktop.Notifications"
+    cmd_status
+}
+
+case "${1:-}" in
+    status) cmd_status ;;
+    shell)  cmd_shell ;;
+    off)    cmd_off ;;
+    direct-shell) exec python3 -B "$DIRECT" on ;;
+    direct-off) exec python3 -B "$DIRECT" off ;;
+    direct-status) exec python3 -B "$DIRECT" status ;;
+    swaync) printf '\n✗ SwayNC se retiró del rice en la Fase 4 (2026-09-22) y está desinstalado.\n  La vuelta atrás ya no es «otro servidor», es ninguno: `notif-server off`.\n' >&2; exit 2 ;;
+    *) sed -n '2,8p' "$0"; exit 2 ;;
+esac

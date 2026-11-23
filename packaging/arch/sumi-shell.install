@@ -1,0 +1,14 @@
+post_install() {
+    printf '%s\n' 'Sumi Shell: read /usr/share/doc/sumi-shell/ARCH.md before starting.' \
+        'User copies and user units can hide the system package. No service was enabled.'
+}
+
+post_upgrade() {
+    printf '%s\n' 'Sumi Shell: package files updated; the running shell was NOT verified or restarted.' \
+        'Start the new version while unlocked and check its load. Read ARCH.md for update limits.'
+}
+
+pre_remove() {
+    printf '%s\n' 'Sumi Shell: check your lock fallback and remove explicit Hyprland/hypridle includes.' \
+        'User settings, state, units and activation files are not removed by this package.'
+}

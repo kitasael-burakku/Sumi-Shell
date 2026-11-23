@@ -1,0 +1,20 @@
+#!/bin/sh
+# ssh-askpass para el desbloqueo de la clave SSH desde el panel del dashboard
+# (dotbackup -> git push). Lo invoca `ssh-add` con SSH_ASKPASS=<esto> +
+# SSH_ASKPASS_REQUIRE=force.
+#
+# La passphrase llega por SUMI_SSH_PASS, puesta SOLO en el entorno de ese
+# `ssh-add`. Nunca toca argv, disco ni el journal. Vive los ~200 ms de ssh-add.
+#
+# SUMI_SSH_GUARD: ruta que el panel deja SIN crear antes de cada intento.
+# La 1a llamada la crea y devuelve la passphrase; una 2a llamada (= passphrase
+# incorrecta, ssh-add reintenta) sale con error para que ssh-add ABORTE en vez
+# de entrar en bucle.
+#
+# Este archivo NO contiene ningun secreto. Ver docs/FASE10/SPIKE-DOTBACKUP.md.
+guard="$SUMI_SSH_GUARD"
+if [ -n "$guard" ] && [ -e "$guard" ]; then
+    exit 1
+fi
+[ -n "$guard" ] && : > "$guard"
+printf '%s\n' "$SUMI_SSH_PASS"
