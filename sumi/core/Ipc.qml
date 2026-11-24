@@ -691,7 +691,7 @@ Scope {
         /** frac 0..1 of the track. False when the player cannot seek. */
         function mediaSeek(frac: real): bool { return Media.seekTo(frac); }
 
-        /** Hold the island expanded without the pointer. For a keybind. */
+        /** Hold the capsule or Edge expanded without the pointer. For a keybind. */
         function peek(mon: string): bool {
             return Screens.peekOn(mon, "ipc");
         }

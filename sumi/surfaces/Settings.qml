@@ -139,7 +139,7 @@ Surface {
                                 { label: "5", value: 5 }, { label: "8", value: 8 }] }
                 ] },
                 // 2026-11-12: las piezas redondas a los lados (también con la muesca), cada una por su lado.
-                { title: "Island", key: "Island", rows: [
+                { title: "Capsule & Edge", key: "Island", rows: [
                     { id: "musicCircle", prop: "islandMusicCircle", kind: "toggle", name: "Music circle" },
                     { id: "netCircle", prop: "islandNetCircle", kind: "toggle", name: "Network circle" },
                     // 2026-11-17: gestos sobre la forma (también el notch; la barra tiene los suyos)
@@ -171,11 +171,11 @@ Surface {
                 { title: "Windows", key: "Window style", rows: [
                     { id: "windowStyle", prop: "windowStyle", kind: "windowStyle", name: "Window style" }
                 ] },
-                { title: "Bar panels", key: "Bar panels", rows: [
+                { title: "Dynamic Bar", key: "Bar panels", rows: [
                     { id: "barPanels", prop: "barPanels", kind: "windowStyle", family: "bar", name: "Bar panels" }
                 ] },
-                { title: "Island & notch", key: "Island style", rows: [
-                    { id: "islandStyle", prop: "islandStyle", kind: "windowStyle", family: "island", name: "Island style" }
+                { title: "Capsule & Edge", key: "Island style", rows: [
+                    { id: "islandStyle", prop: "islandStyle", kind: "windowStyle", family: "island", name: "Capsule style" }
                 ] }
             ] },
             { id: "interaction", title: "Interaction", sections: [
@@ -235,10 +235,10 @@ Surface {
              * no es un campo plano del ConfigStore sino `monitors[id].dock`; no entra en Reset.
              */
             // En la UI «Notch» (2026-11-12, pedido del usuario: un dock es otra cosa); ids y clave `dock` intactos.
-            { id: "dock", title: "Notch", sections: [
+            { id: "dock", title: "Edge", sections: [
                 { title: "This monitor", key: "", rows: [
-                    { id: "dock", prop: "", kind: "dock", name: "Enable notch" },
-                    { id: "dockPreview", prop: "", kind: "dockPreview", name: "Preview notch" },
+                    { id: "dock", prop: "", kind: "dock", name: "Enable Edge" },
+                    { id: "dockPreview", prop: "", kind: "dockPreview", name: "Preview Edge" },
                     // Enlaces, no otra copia del dato (futureSettingssurface §Dock y §4).
                     { id: "dockMotion", prop: "", kind: "goto", name: "Motion mode", path: "shell/animations/motion" },
                     { id: "dockOsd", prop: "", kind: "goto", name: "OSD settings", path: "shell/osd/osd" },
@@ -272,12 +272,12 @@ Surface {
             // La barra persistente, por monitor: el MISMO `monitors[id].presentation` que Super+Ctrl+P.
             { id: "panels", title: "Layout", sections: [
                 { title: "This monitor", key: "", rows: [
-                    { id: "bar", prop: "", kind: "bar", name: "Persistent bar" },
+                    { id: "bar", prop: "", kind: "bar", name: "Dynamic Bar" },
                     // 2026-11-19: dónde va la barra de ESTE monitor (`monitors[id].barEdge|barLength`; siempre centrada)
                     { id: "barEdge", prop: "", kind: "barEdge", name: "Position" },
                     { id: "barLength", prop: "", kind: "barLength", name: "Length" },
                     { id: "barReset", prop: "", kind: "action", name: "Default position and length", label: "Reset" },
-                    { id: "layoutDock", prop: "", kind: "goto", name: "Notch", path: "shell/dock/dock" }
+                    { id: "layoutDock", prop: "", kind: "goto", name: "Edge", path: "shell/dock/dock" }
                 ] },
                 { title: "Windows", key: "Surfaces", rows: [
                     { id: "thumbs", prop: "minimizerThumbs", kind: "toggle", name: "Window thumbnails" }
@@ -296,7 +296,7 @@ Surface {
             { id: "modules", title: "Modules", sections: [
                 { title: "Optional modules", key: "", rows: [
                     { id: "modWeather", prop: "", kind: "goto", name: "Weather", path: "shell/calendar/weather" },
-                    { id: "modDock", prop: "", kind: "goto", name: "Notch", path: "shell/dock/dock" },
+                    { id: "modDock", prop: "", kind: "goto", name: "Edge", path: "shell/dock/dock" },
                     { id: "modPolkit", prop: "", kind: "goto", name: "Polkit agent", path: "shell/general/polkit" },
                     { id: "modNotif", prop: "", kind: "goto", name: "Notification server", path: "shell/general/notifServer" }
                 ] }
@@ -417,8 +417,8 @@ Surface {
                                 { label: "10 s", value: 10 }] },
                     { id: "recIndicator", prop: "recIndicator", kind: "toggle", name: "Recording indicator", rec: true },
                     { id: "recTimer", prop: "recTimer", kind: "toggle", name: "Timer", rec: true },
-                    { id: "recIslandControls", prop: "recIslandControls", kind: "toggle", name: "Controls under the island", rec: true },
-                    { id: "recBarControls", prop: "recBarControls", kind: "toggle", name: "Controls in the bar", rec: true },
+                    { id: "recIslandControls", prop: "recIslandControls", kind: "toggle", name: "Controls under the capsule", rec: true },
+                    { id: "recBarControls", prop: "recBarControls", kind: "toggle", name: "Controls in the Dynamic Bar", rec: true },
                     { id: "recNotify", prop: "recNotify", kind: "toggle", name: "Notify when saved", rec: true },
                     { id: "recOpenFolder", prop: "recOpenFolder", kind: "toggle", name: "Open the folder when saved", rec: true },
                     { id: "recRememberMode", prop: "recRememberMode", kind: "toggle", name: "Remember the last mode", rec: true }
@@ -1354,7 +1354,7 @@ Surface {
     function sddmCaption(r) {
         if (r.id === "sddmOpen") {
             const k = Keybinds.keyText("loginScreen");
-            return "Look, notch, clock, users and the preview, in their own window" + (k.length > 0 ? " · " + k : "");
+            return "Look, Login Edge, clock, users and the preview, in their own window" + (k.length > 0 ? " · " + k : "");
         }
         const c = SddmTheme.captionText(r.id);
         return c.length > 0 ? c : (r.caption !== undefined ? r.caption : SddmTheme.captionFor(r.key || ""));
@@ -1654,7 +1654,7 @@ Surface {
         case "recExisting": return "A number is added: “Recording … (2)”";
         case "recOpenDir": return root.recPretty(ScreenRecorder.outputDir);
         case "recDelay": return "Before recording starts · D in the recorder turns it off and on";
-        case "recIndicator": return "Under the island and in the bar · the privacy dot always shows";
+        case "recIndicator": return "Under the capsule or Edge and in the Dynamic Bar · the privacy dot always shows";
         case "recTimer": return "The elapsed time in the indicator";
         case "recIslandControls": return "Pause, stop and copy without opening the recorder";
         case "recBarControls": return "Pause, stop and copy in the bar's status area";
@@ -1902,7 +1902,7 @@ Surface {
         recDir: ["folder", "directory", "videos", "save", "recordings"],
         recName: ["filename", "file name", "name", "date"],
         recDelay: ["countdown", "delay", "timer", "recording"],
-        recIndicator: ["hud", "island", "bar", "indicator", "recording"],
+        recIndicator: ["hud", "capsule", "edge", "dynamic bar", "island", "notch", "bar", "indicator", "recording"],
         recNotify: ["notification", "recording"],
         recCursor: ["cursor", "pointer", "mouse"],
         // F3b
@@ -1915,11 +1915,11 @@ Surface {
         envRefresh: ["refresh", "detect", "recheck", "capabilities", "dependencies"],
         scale: ["size", "zoom", "dpi", "bigger", "smaller", "ui"],
         autoHide: ["hide", "retract", "hidden"],
-        musicCircle: ["circle", "side", "music", "media", "album art", "island", "notch", "hide", "show"],
-        islandWheel: ["gesture", "gestures", "scroll", "wheel", "mouse", "volume", "island", "notch"],
+        musicCircle: ["circle", "side", "music", "media", "album art", "capsule", "edge", "island", "notch", "hide", "show"],
+        islandWheel: ["gesture", "gestures", "scroll", "wheel", "mouse", "volume", "capsule", "edge", "island", "notch"],
         islandMiddle: ["gesture", "gestures", "middle click", "middle", "click", "mouse", "play", "pause", "music", "media",
-            "island", "notch"],
-        netCircle: ["circle", "side", "network", "wifi", "wi-fi", "ethernet", "island", "notch", "hide", "show"],
+            "capsule", "edge", "island", "notch"],
+        netCircle: ["circle", "side", "network", "wifi", "wi-fi", "ethernet", "capsule", "edge", "island", "notch", "hide", "show"],
         reserve: ["exclusive", "gap", "tiling", "margin"],
         hoverPreview: ["hover", "peek", "preview", "pointer"],
         ws: ["workspaces", "dots", "desktops"],
@@ -1928,9 +1928,9 @@ Surface {
         windowStyle: ["window", "windows", "style", "minimalist", "expressive", "gnome", "open", "close", "dialog", "lift",
             "power", "power-on", "crt", "turn on", "transition", "bloom", "capsule", "mochi", "bounce", "spring", "ink",
             "scroll", "unroll", "mist", "blur", "focus", "animation", "effect"],
-        barPanels: ["bar", "panel", "panels", "slide", "drawer", "grow", "open", "animation", "spring", "bounce", "unfold",
+        barPanels: ["bar", "dynamic bar", "panel", "panels", "slide", "drawer", "grow", "open", "animation", "spring", "bounce", "unfold",
             "strip", "flap", "fold", "bloom", "glow", "ink", "drop", "mist", "blur", "focus", "style", "effect"],
-        islandStyle: ["island", "dynamic island", "notch", "style", "open", "animation", "fluid", "mochi", "bounce", "drop",
+        islandStyle: ["capsule", "dynamic capsule", "edge", "island", "dynamic island", "notch", "style", "open", "animation", "fluid", "mochi", "bounce", "drop",
             "jelly", "squash", "stretch", "power", "power-on", "line", "bloom", "glow", "ink", "mist", "blur", "focus", "effect"],
         // estilo de interfaz (2026-11-14, ADR-34)
         interfaceStyle: ["terminal", "tui", "retro", "crt", "soft", "rounded", "square", "corners", "shape", "geometry", "look", "appearance"],
@@ -1940,23 +1940,23 @@ Surface {
         fxGlitch: ["terminal", "interference", "static", "noise", "signal", "glitch", "camera", "effect", "effects", "retro", "crt"],
         fxScanlines: ["terminal", "scanlines", "scan", "lines", "crt", "retro", "effect", "effects"],
         fxGlow: ["terminal", "glow", "halo", "shadow", "neon", "effect", "effects"],
-        dock: ["dock", "macos", "presentation"],
-        dockPreview: ["dock", "sample", "demo"],
+        dock: ["edge", "notch", "dynamic notch", "bar-edge", "dock", "macos", "presentation"],
+        dockPreview: ["edge", "notch", "dock", "sample", "demo"],
         dockMotion: ["animation"],
         dockOsd: ["volume", "brightness"],
         dockGestures: ["gesture", "gestures", "scroll", "wheel", "middle click", "volume", "play", "pause"],
-        notchCorners: ["notch", "corner", "corners", "radius", "round", "rounded", "square", "shape"],
-        notchFlare: ["notch", "flare", "join", "edge", "curve", "shoulder", "shape"],
-        notchColor: ["notch", "color", "colour", "black", "oled", "bezel", "dark"],
-        notchRest: ["notch", "rest", "clock", "minimal", "idle", "time", "hide"],
-        notchActMusic: ["notch", "activity", "live", "music", "media", "album art", "waves", "ears"],
-        notchViz: ["notch", "visualizer", "cava", "waves", "spectrum", "bars", "fps", "music", "audio"],
-        notchActRecording: ["notch", "activity", "live", "recorder", "recording", "rec", "timer", "ears"],
-        notchActSpeed: ["notch", "activity", "live", "speed test", "speedtest", "network", "rocket", "ears"],
-        notchActPower: ["notch", "activity", "live", "charger", "battery", "power", "plugged", "laptop", "ears"],
-        notchActCopy: ["notch", "activity", "live", "copied", "clipboard", "emoji", "paste", "ears"],
-        notchActBluetooth: ["notch", "activity", "live", "bluetooth", "headphones", "headset", "battery", "ears"],
-        notchActWorkspace: ["notch", "activity", "live", "workspace", "desktop", "switch", "ears"],
+        notchCorners: ["edge", "bar-edge", "notch", "corner", "corners", "radius", "round", "rounded", "square", "shape"],
+        notchFlare: ["bar-edge", "notch", "flare", "join", "edge", "curve", "shoulder", "shape"],
+        notchColor: ["edge", "notch", "color", "colour", "black", "oled", "bezel", "dark"],
+        notchRest: ["edge", "notch", "rest", "clock", "minimal", "idle", "time", "hide"],
+        notchActMusic: ["edge", "notch", "activity", "live", "music", "media", "album art", "waves", "ears"],
+        notchViz: ["edge", "notch", "visualizer", "cava", "waves", "spectrum", "bars", "fps", "music", "audio"],
+        notchActRecording: ["edge", "notch", "activity", "live", "recorder", "recording", "rec", "timer", "ears"],
+        notchActSpeed: ["edge", "notch", "activity", "live", "speed test", "speedtest", "network", "rocket", "ears"],
+        notchActPower: ["edge", "notch", "activity", "live", "charger", "battery", "power", "plugged", "laptop", "ears"],
+        notchActCopy: ["edge", "notch", "activity", "live", "copied", "clipboard", "emoji", "paste", "ears"],
+        notchActBluetooth: ["edge", "notch", "activity", "live", "bluetooth", "headphones", "headset", "battery", "ears"],
+        notchActWorkspace: ["edge", "notch", "activity", "live", "workspace", "desktop", "switch", "ears"],
         speed: ["faster", "slower", "duration", "animation", "tempo"],
         themeCard: ["overview", "theme", "palette", "current"],
         outDev: ["speakers", "headphones", "output", "sink", "hdmi", "default"],
@@ -2026,11 +2026,11 @@ Surface {
         focusInfo: ["keyboard", "focus", "hover", "pointer", "mouse"],
         shortcutsHelp: ["shortcuts", "keybinds", "keybindings", "hotkeys", "keys", "bindings", "help", "hyprland"],
         // la ventana Login screen (2026-11-23): sus ajustes ya no son filas de Settings; la búsqueda lleva a la puerta
-        sddmOpen: ["sddm", "greeter", "login", "sign in", "notch", "clock", "avatar", "users", "blur", "password",
+        sddmOpen: ["sddm", "greeter", "login", "sign in", "login edge", "edge", "notch", "clock", "avatar", "users", "blur", "password",
                    "preview", "test window"],
         notifServer: ["notifications", "swaync", "dbus", "daemon"],
-        bar: ["hover bar", "panel", "persistent", "taskbar", "waybar", "top bar"],
-        modWeather: ["module"], modDock: ["module", "dock"],
+        bar: ["dynamic bar", "bar-edge", "hover bar", "panel", "persistent", "persistent bar", "taskbar", "waybar", "top bar"],
+        modWeather: ["module"], modDock: ["module", "edge", "notch", "dock"],
         modPolkit: ["module"], modNotif: ["module"],
         unload: ["memory", "ram", "unload", "idle"],
         thumbs: ["thumbnails", "minimizer", "windows", "previews"],
@@ -2815,8 +2815,11 @@ Surface {
         // por sección, en el orden del catálogo
         const secs = [];
         for (const c of ch) if (secs.indexOf(c.section) < 0) secs.push(c.section);
+        // 2026-11-24: las secciones del esquema son claves internas (Reset las usa tal cual); aquí sólo se nombran con
+        // la nomenclatura pública de las presentaciones (Dynamic Capsule, Edge, Bar-Edge)
+        const secNames = { "Island": "Capsule & Edge", "Notch": "Edge shape", "NotchActivities": "Edge live activities" };
         for (const sname of secs)
-            rows.push({ id: "importSec:" + sname, prop: "", kind: "info", name: sname,
+            rows.push({ id: "importSec:" + sname, prop: "", kind: "info", name: secNames[sname] || sname,
                         caption: ch.filter(c => c.section === sname)
                             .map(c => root.nameOfSetting(c.id) + " " + c.from + " → " + c.to).join(" · ") });
         if (a.missing.length > 0)
@@ -3534,13 +3537,13 @@ Surface {
         switch (r.id) {
         case "scale": return "Size of everything in the shell";
         case "autoHide": return "Retract until the pointer reaches the top edge";
-        case "musicCircle": return "Left of the island and the notch · only while something is playing";
-        case "netCircle": return "Right of the island and the notch · opens the control center";
-        case "islandWheel": return Settings.islandWheel === "off" ? "Scrolling over the island or the notch does nothing"
-                : "Over the island or the notch · 5% per notch";
-        case "islandMiddle": return Settings.islandMiddleClick === "off" ? "Middle click over the island or the notch does nothing"
-                : "Over the island or the notch · the player the Mixer shows";
-        case "reserve": return "Claim the top edge so windows tile below the island";
+        case "musicCircle": return "Left of the capsule and of Edge · only while something is playing";
+        case "netCircle": return "Right of the capsule and of Edge · opens the control center";
+        case "islandWheel": return Settings.islandWheel === "off" ? "Scrolling over the capsule or Edge does nothing"
+                : "Over the capsule or Edge · 5% per wheel step";
+        case "islandMiddle": return Settings.islandMiddleClick === "off" ? "Middle click over the capsule or Edge does nothing"
+                : "Over the capsule or Edge · the player the Mixer shows";
+        case "reserve": return "Claim the top edge so windows tile below the capsule or Edge";
         case "hoverPreview": return "Resting on an icon previews its panel; a click keeps it open";
         case "osd": return Settings.osdPlacement === "below"
                 ? "Always below the open panel"
@@ -3602,13 +3605,13 @@ Surface {
                 : "Enter to search by name";
         case "units": return "Temperature, shared by Calendar and the lock screen";
         case "dock": return root.barHere
-                ? "The bar is on here · it becomes a notch on the top edge"
-                : "A notch on the top edge instead of the island · only on this monitor";
+                ? "The Dynamic Bar is on here · it becomes Bar-Edge, joined to the top edge"
+                : "Joined to the top edge instead of the floating capsule · only on this monitor";
         case "dockPreview": return "Rest, expanded, OSD and a live activity · a sample, nothing changes";
-        case "notchCorners": return Style.name === "terminal" ? "Terminal keeps the notch square"
-                : "The two bottom corners · also the notch bar";
-        case "notchFlare": return Style.name === "terminal" ? "Terminal keeps the notch straight"
-                : "How the notch curves into the top edge · also the notch bar";
+        case "notchCorners": return Style.name === "terminal" ? "Terminal keeps Edge square"
+                : "The two bottom corners · also Bar-Edge";
+        case "notchFlare": return Style.name === "terminal" ? "Terminal keeps Edge straight"
+                : "How Edge curves into the top edge · also Bar-Edge";
         case "notchColor": return "Black blends with the screen bezel, best on OLED";
         case "notchRest": return Settings.notchRest === "minimal"
                 ? "Only the privacy dots at rest · the clock shows on hover"
@@ -3791,18 +3794,18 @@ Surface {
         case "firstDay": return Settings.calendarFirstDay === "locale"
                 ? "From your locale · now " + (Qt.locale().firstDayOfWeek === 0 ? "Sunday" : "Monday")
                 : "Weeks in Calendar start on " + (Settings.calendarFirstDay === "monday" ? "Monday" : "Sunday");
-        case "clock": return "Island, bar, Calendar and the lock screen · now " + Clock.time;
+        case "clock": return "Capsule, Edge, Dynamic Bar, Calendar and the lock screen · now " + Clock.time;
         case "popupSec": return "Low priority: a second longer · critical: until dismissed";
         case "notifPos": {
             const names = { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left",
                             "bottom-center": "Bottom center", "bottom-right": "Bottom right" };
             return (names[Settings.notifPosition] || "Bottom right")
-                + (Settings.notifPosition.startsWith("top") ? " · below the bar or island" : "") + " · on the focused screen";
+                + (Settings.notifPosition.startsWith("top") ? " · below the Dynamic Bar, capsule or Edge" : "") + " · on the focused screen";
         }
         case "notifMargin": return Settings.notifMargin + " px from the screen edges";
         // 2026-11-19: la barra en cualquier borde (lib/bar-edge.js)
         case "barEdge": return BarEdge.edgeLabel(root.barEdgeHere) + " · panels open "
-            + BarEdge.opensTowards(root.barEdgeHere) + (root.barHere ? "" : " · turn on Persistent bar to use it");
+            + BarEdge.opensTowards(root.barEdgeHere) + (root.barHere ? "" : " · turn on Dynamic Bar to use it");
         // centrada; el mínimo lo pone su contenido (core/Bar `minLen`)
         case "barLength": return root.barAtLimit ? "At its limit · " + root.barLengthPx + " px, centered"
             : root.barLengthHere + " % of the edge · " + root.barLengthPx + " px, centered";
@@ -3837,9 +3840,9 @@ Surface {
                 : Settings.termMono ? "Uses your code font (" + Typography.mono + ") for the interface"
                 : "Keeps your interface font (" + Typography.uiChosen + ")";
         case "barPanels": return Settings.motionMode === "off" ? "Paused · motion is Off"
-                : "How panels open from the permanent bar and go back into it";
+                : "How panels open from the Dynamic Bar and go back into it";
         case "islandStyle": return Settings.motionMode === "off" ? "Paused · motion is Off"
-                : "How the island and the notch open a panel and close it";
+                : "How the capsule and Edge open a panel and close it";
         case "windowStyle": return Settings.motionMode === "off" ? "Paused · motion is Off"
                 : "How floating windows and notification popups open, close and change section";
         case "speed": return Settings.motionSpeed > 1 ? "Quicker transitions · waits and confirmations never change"
@@ -3856,16 +3859,16 @@ Surface {
         case "bar": {
             // la tecla de verdad si se conoce (ayuda de atajos); antes, «Super+Ctrl+P» fijo aunque fuera otra
             const k = Keybinds.keyText("barToggle");
-            return "A bar along the " + root.barEdgeHere + " edge instead of the island" + (root.dockOn ? " · notch style, the notch is on" : "")
+            return "A bar along the " + root.barEdgeHere + " edge instead of the capsule" + (root.dockOn ? " · Bar-Edge, because Edge is on" : "")
                 + (k.length > 0 ? " · " + k : "");
         }
         case "modWeather": return Settings.weatherEnabled ? "On · Calendar and the lock screen" : "Off";
         case "modDock": return root.dockOn ? "On on this monitor" : "Off on this monitor";
         case "modPolkit": return Settings.polkitAgent ? (Polkit.registered ? "On · registered" : "On · another agent holds the session") : "Off";
         case "modNotif": return Notifs.enabled ? "On · the shell owns notifications" : "Off";
-        case "layoutDock": return "Preview and configure the notch on this monitor";
+        case "layoutDock": return "Preview and configure Edge on this monitor";
         case "dockMotion": return "Shared by every presentation · now " + Settings.motionMode.charAt(0).toUpperCase() + Settings.motionMode.slice(1);
-        case "dockOsd": return "With the notch on, the indicator sits inside it";
+        case "dockOsd": return "With Edge on, the indicator sits inside it";
         case "dockGestures": return "Scroll for volume, middle click to play or pause";
         }
         return "";

@@ -1,36 +1,40 @@
 # Sumi Shell
 
-A desktop shell for **Hyprland**, written in Quickshell (Qt 6 / QML). One process gives each monitor a Dynamic Island,
-a persistent bar or a notch, and the launcher, dashboard, control center, mixer, calendar, settings, system monitor,
-wallpaper browser and session lock that open from it.
+A desktop shell for **Hyprland**, written in Quickshell (Qt 6 / QML). One process gives each monitor a presentation:
+**Dynamic Capsule**, **Dynamic Bar**, **Edge** or **Bar-Edge**, and the launcher, dashboard, control center, mixer,
+calendar, settings, system monitor, wallpaper browser and session lock that open from it.
 
 <p align="center">
   <img src="docs/screenshots/hero.jpg" width="820"
-       alt="A snowy anime wallpaper with the Sumi Shell island at the top centre showing the time, and two kitty terminals showing system information.">
+       alt="A snowy anime wallpaper with the Sumi Shell Dynamic Capsule at the top centre showing the time, and two kitty terminals showing system information.">
 </p>
 
 **Status:** Application version: **0.4.0**. Public API: **1** ([`sumi/version.json`](sumi/version.json)). There is no
 release tag and no published package yet: you install from a clone. Version 0.4.0 passed a
 [portability acceptance run on clean Arch Linux VMs](docs/PORTABILITY-ACCEPTANCE.md), within the limits that report
-states.
+states. 
+
+>Important: This shell is currently in beta. Full compatibility across all PCs is not guaranteed. (╥﹏╥)
 
 ## Gallery
 
 | | |
 | --- | --- |
-| <img src="docs/screenshots/notch.jpg" width="400" alt="The full desktop with the notch at the top centre: a black notch joined to the screen edge with the time, a music bubble and a small audio visualizer."><br>**Notch** | <img src="docs/screenshots/bar-notch.jpg" width="400" alt="The full desktop with the persistent bar joined to the top edge in the notch outline: tools on the left, the playing track, clock and system load in the centre, status on the right."><br>**Bar-notch** |
-| <img src="docs/screenshots/bar-settings-calendar.jpg" width="400" alt="A floating bar across the top with the Settings window on its General page and the Calendar window showing November 2026, in the Soft style."><br>**Persistent bar** with Settings and Calendar (Soft) | <img src="docs/screenshots/bar-left-terminal.jpg" width="400" alt="A vertical bar along the left edge with the Settings window on its Layout page and a terminal with system information, in the Terminal style with square frames."><br>**Bar on the left edge** (Terminal style) |
+| <img src="docs/screenshots/notch.jpg" width="400" alt="The full desktop with Edge at the top centre: a black notch-shaped capsule joined to the screen edge with the time, a music bubble and a small audio visualizer."><br>**Edge** | <img src="docs/screenshots/bar-notch.jpg" width="400" alt="The full desktop with Bar-Edge: the Dynamic Bar joined to the top edge in the Edge outline: tools on the left, the playing track, clock and system load in the centre, status on the right."><br>**Bar-Edge** |
+| <img src="docs/screenshots/bar-settings-calendar.jpg" width="400" alt="A floating Dynamic Bar across the top with the Settings window on its General page and the Calendar window showing November 2026, in the Soft style."><br>**Dynamic Bar** with Settings and Calendar (Soft) | <img src="docs/screenshots/bar-left-terminal.jpg" width="400" alt="A vertical Dynamic Bar along the left edge with the Settings window on its Layout page and a terminal with system information, in the Terminal style with square frames."><br>**Dynamic Bar on the left edge** (Terminal style) |
 
 ## Presentations and styles
 
 | Presentation | What it is |
 | --- | --- |
-| **Dynamic Island** | The default for a new monitor. A compact island with the clock and live activity that grows into panels. |
-| **Persistent bar** | A bar with desktop tools and system status. Its edge and length are set per monitor. |
-| **Notch** | Replaces the resting island with a notch joined to the screen edge. It keeps the same panels and shows configurable live activities (music, recording and others) beside it. |
-| **Bar-notch** | **Persistent bar** and **Enable notch** turned on together: the bar joins the edge and takes the notch outline. |
+| **Dynamic Capsule** | The default for a new monitor. A compact capsule with the clock and live activity that grows into panels. |
+| **Dynamic Bar** | A bar with desktop tools and system status. Its edge and length are set per monitor. |
+| **Edge** | Replaces the floating capsule with a shape joined to the top edge of the screen, like a notch. It keeps the same panels and shows configurable live activities (music, recording and others) beside it. |
+| **Bar-Edge** | **Dynamic Bar** and **Enable Edge** turned on together: the bar joins the top edge and takes the Edge outline. |
 
-Presentation and notch preferences are stored per monitor. The **interface style** is chosen in
+Presentation and Edge preferences are stored per monitor, in **Settings → Shell → Layout** and its **Edge** page.
+Configuration keys, IPC values and shortcut names keep their original identifiers (`island`, `bar`, `dock`, `notch…`),
+so existing settings and scripts keep working. The **interface style** is chosen in
 **Settings → Appearance → Interface style**. **Soft** uses rounded panels, capsules and an accent veil. **Terminal** uses
 square frames, text-mode controls and monospace text. Its frame, decorations, monospace text and optional effects
 (interference, scanlines and glow, off by default) are adjustable. Palette, material (Glass or Vidrio Satinado),

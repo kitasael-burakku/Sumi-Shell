@@ -96,6 +96,28 @@ Añadir un token: la clave va en los **tres** sitios —
 `matugen/templates/sumi-shell-colors.json`, `colors.static.json` y `services/Colors.qml`
 (la property y su `tok("...")`) — y el checker de paridad cubre los dos primeros.
 
+## Presentaciones: nombres públicos e identificadores (2026-11-24)
+
+La UI y la documentación pública usan nombres propios; el código, el esquema, el IPC y la CLI conservan los
+identificadores de siempre, así que las configuraciones guardadas no se migran.
+
+| Nombre público | Antes | Identificadores internos (sin cambios) |
+| --- | --- | --- |
+| **Dynamic Capsule** | Dynamic Island | `presentation: "island"`, `core/Island.qml`, `island*` (props, `shell.island.*`, `family: "island"`) |
+| **Dynamic Bar** | Persistent bar | `presentation: "bar"`, `barMode`, `core/Bar.qml`, `barToggle`, `bar*` |
+| **Edge** | Notch | `monitors[id].dock`, `dockMode`, página `shell/dock`, `notch*` (`shell.notch.*`, `Metrics.notch*`), `status().presentation: "dock"` |
+| **Bar-Edge** | Bar-notch | `barDock` (`presentation: "bar"` + `dock` a la vez), `Metrics.reservedBarDockH` |
+
+Al redactar texto visible: «capsule» para la forma de Dynamic Capsule, «Edge» como nombre propio (sin artículo
+cuando se nombra el modo) y «Dynamic Bar» para el modo; «notch» sólo para describir la forma, nunca como nombre.
+La muesca del greeter de Sumi SDDM es otra pieza: su nombre público es **Login Edge** (autenticación en la pantalla
+de inicio, no una presentación de la shell). Sus grupos y claves (`notch`, `notchColor`, `notch*`) y sus etiquetas los
+define el esquema de Sumi SDDM (`sumi-sddm config schema`), que esta shell muestra tal cual; aquí sólo son nuestros
+los nombres de las escenas de la vista previa (`services/SddmTheme.allScenarios`) y las descripciones de Settings.
+
+Ojo con el parecido: `barEdge`, `BarEdge` y `lib/bar-edge.js` son el **borde de pantalla** donde va la barra (fila
+«Position» de Layout), no la presentación Bar-Edge.
+
 ## El island
 
 **Rest** (rediseño del 2026-09-15): **sólo la hora, en el centro exacto**, y un visualizador de
@@ -910,12 +932,12 @@ caminos de siempre (atajo `sumi:settings`, engranaje del island y de la barra, `
 settings|settingsTheme|settingsSystem`, `settingsOpen <ruta>`, «Configure…» de otras superficies:
 Esc vuelve a la superficie de origen). Reabrir vuelve a la página, scroll y fila que se dejaron;
 cerrada, el contenido se descarga tras «Unload after» (al bloquear, en el acto y sin secretos).
-El índice lateral y el menú compacto comparten cinco grupos plegables. Shell reúne General, Layout, Notch,
+El índice lateral y el menú compacto comparten cinco grupos plegables. Shell reúne General, Layout, Edge,
 Animations, Interaction e Import and export. Appearance, Desktop tools, Apps & services y System reúnen el resto.
 Las flechas izquierda y derecha recorren la jerarquía. Elegir una página en la búsqueda, en el historial o con
 `settingsOpen` despliega su grupo. Alt+←/→ recorre las páginas visitadas.
 
-En Animations, Motion reúne el modo y la velocidad. Windows, Bar panels e Island & notch muestran ocho estilos
+En Animations, Motion reúne el modo y la velocidad. Windows, Dynamic Bar y Capsule & Edge muestran ocho estilos
 cada una. El puntero permite previsualizar una tarjeta y el teclado reproduce la elección. Reduced reproduce
 al señalar o enfocar y Off deja las tarjetas quietas. El título y las pestañas quedan a la vista mientras caben
 sobre el contenido. Ctrl+PgUp/PgDn cambia de sección.

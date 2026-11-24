@@ -70,7 +70,7 @@ En cada perfil, esperar hasta 15 segundos después del arranque a que se pueda a
 | Prueba | Aceptación |
 | --- | --- |
 | Arranque en frío | Una sola instancia, salida Wayland visible, `Configuration Loaded` sin error de carga, IPC JSON y `NRestarts=0` en systemd. |
-| Barra, Island y notch | Usar Settings → Shell → Layout para alternar barra e Island y habilitar la variante con notch. Adjuntar una captura por presentación en la VM desbloqueada, las capas y el estado IPC. El foco regresa a la aplicación después de cerrar un panel. |
+| Dynamic Bar, Dynamic Capsule y Edge | Usar Settings → Shell → Layout para alternar Dynamic Bar y Dynamic Capsule, y habilitar Edge desde su página (con Dynamic Bar activa, Bar-Edge). Adjuntar una captura por presentación en la VM desbloqueada, las capas y el estado IPC. El foco regresa a la aplicación después de cerrar un panel. |
 | Acciones e IPC | Abrir launcher, Settings, calendario, mixer y Login screen por IPC. El lanzador abre una entrada `.desktop` local de prueba. Con el fragmento Lua instalado, ejecutar `hyprctl dispatch 'hl.dsp.global("sumi:launcher")'` y guardar binds y globalshortcuts. `hyprctl configerrors` queda vacío. |
 | Persistencia | El perfil nuevo genera `settings.json` v4 bajo config. Ajustar un valor, salir de la sesión y volver a entrar. El valor persiste y los hashes del runtime se conservan. Las configuraciones de tareas, web y proveedores sólo aparecen si se importan. |
 | Tema estático | Sin Matugen, aplicar `qs -c sumi ipc call sumi themePreset gruvbox-dark` y luego `themeSet static`. Esperar ambos cambios y comprobar color y origen en `status.palette`, escritura en `$XDG_STATE_HOME/sumi-shell/colors.json` y ausencia de escrituras al código. |

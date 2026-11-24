@@ -91,12 +91,12 @@ Opens a surface on a monitor. Guaranteed names: `launcher`, `wallpaper`, `settin
 tab), `minimizer`, `services`, `theme`, `cli`, `notifications`, `login` (the floating Login screen window for Sumi
 SDDM, since 2026-11-23). Returns `false` for
 an unknown name or when no monitor matches `mon`. Since 2026-11-07 `settings` (and `settingsTheme`, `settingsSystem`)
-opens Settings as its own floating window instead of an island panel; the name, its arguments and `close settings` work
+opens Settings as its own floating window instead of a capsule panel; the name, its arguments and `close settings` work
 as before.
 
 ### `peek mon` → bool
 
-Holds the island expanded on that monitor without the pointer (what a "peek" key does). `false` if no monitor matches.
+Holds the capsule or Edge expanded on that monitor without the pointer (what a "peek" key does). `false` if no monitor matches.
 
 ### `mode profile` → bool
 
@@ -166,7 +166,7 @@ configurations (`tests/api/api-check.py` keeps them in step).
 | `tasks` | Tasks | Shell and windows | `SUPER+CTRL+T` |
 | `minimizer` | Window minimizer | Shell and windows | `ALT+Tab` |
 | `peek` | Peek | Shell and windows | `SUPER+CTRL+space` |
-| `barToggle` | Persistent bar | Shell and windows | `SUPER+CTRL+P` |
+| `barToggle` | Dynamic Bar | Shell and windows | `SUPER+CTRL+P` |
 | `keybinds` | Keyboard shortcuts | Shell and windows | `SUPER+F1` |
 | `wallpaper` | Wallpapers | Wallpaper and theme | `SUPER+W` |
 | `wallRandom` | Random wallpaper | Wallpaper and theme | `SUPER+CTRL+R` |

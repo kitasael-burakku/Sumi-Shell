@@ -56,7 +56,7 @@ Singleton {
         "shell.interface.workspaceIndicators": "Workspace dots", "shell.osd.showValue": "OSD value",
         "shell.launcher.scrollbar": "Launcher scrollbar", "shell.animations.mode": "Motion",
         "shell.animations.speed": "Global speed", "shell.animations.windowStyle": "Window style",
-        "shell.animations.barPanels": "Bar panels", "shell.animations.islandStyle": "Island style",
+        "shell.animations.barPanels": "Bar panels", "shell.animations.islandStyle": "Capsule style",
         "theme.typography.textSize": "Text size",
         "theme.appearance.glassOpacity": "Glass opacity",
         "theme.appearance.material": "Material",

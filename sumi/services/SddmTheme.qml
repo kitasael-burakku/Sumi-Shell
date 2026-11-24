@@ -427,10 +427,10 @@ Singleton {
     ]
     /** Las 16 escenas de la CLI (`SCENARIOS` de tools/sumi-sddm), agrupadas para el menú «More» de la ventana. */
     readonly property var allScenarios: [
-        { label: "Compact", value: "compact", section: "Notch" },
-        { label: "Password", value: "expanded", section: "Notch" },
-        { label: "Sessions", value: "sessions", section: "Notch" },
-        { label: "Error", value: "failed", section: "Notch" },
+        { label: "Compact", value: "compact", section: "Login Edge" },
+        { label: "Password", value: "expanded", section: "Login Edge" },
+        { label: "Sessions", value: "sessions", section: "Login Edge" },
+        { label: "Error", value: "failed", section: "Login Edge" },
         { label: "Typing", value: "typing", section: "Password" },
         { label: "Caps Lock on", value: "caps", section: "Password" },
         { label: "Signing in", value: "authenticating", section: "Password" },

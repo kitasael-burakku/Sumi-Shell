@@ -250,9 +250,12 @@ PanelWindow {
         const n = win.selected;
         if (n === "keybinds") return "This is the window you're in";
         if (n === "keepAwake") return "Keep awake is " + (Session.keepAwake ? "on" : "off");
-        if (n === "barToggle")
-            return "This screen shows the " + (Settings.monitorPref(win.targetScreen, "presentation", "island") === "bar"
-                                               ? "persistent bar" : "island");
+        if (n === "barToggle") {
+            // nombres públicos (2026-11-24); los valores guardados siguen siendo `bar`/`island` y `dock`
+            const bar = Settings.monitorPref(win.targetScreen, "presentation", "island") === "bar";
+            const edge = Settings.monitorPref(win.targetScreen, "dock", false) === true;
+            return "This screen shows " + (bar ? (edge ? "Bar-Edge" : "the Dynamic Bar") : (edge ? "Edge" : "the Dynamic Capsule"));
+        }
         return "";
     }
 

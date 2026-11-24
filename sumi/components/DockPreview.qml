@@ -227,5 +227,5 @@ Item {
     }
 
     Accessible.role: Accessible.Animation
-    Accessible.name: "Notch preview: " + root.phase
+    Accessible.name: "Edge preview: " + root.phase
 }

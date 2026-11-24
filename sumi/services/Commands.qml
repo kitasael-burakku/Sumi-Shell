@@ -41,7 +41,7 @@ Singleton {
         { id: "mode",       glyph: "monitor",      desc: "Desktop mode, in Dashboard → Performance", runs: "surface", to: "performance" },
         { id: "dashboard",  glyph: "info",         desc: "System control center",             runs: "surface", to: "dashboard" },
         { id: "login",      glyph: "lock",         desc: "Login screen (Sumi SDDM)",          runs: "surface", to: "login" },
-        { id: "menu",       glyph: "keyboard",     desc: "The island icon menu",              runs: "menu" }
+        { id: "menu",       glyph: "keyboard",     desc: "The capsule icon menu",             runs: "menu" }
     ]
     /**
      * F3d-1: las tareas con `palette` (las del autor: update, diskbackup, clean, health y doctor;
@@ -78,7 +78,7 @@ Singleton {
         if (why.length > 0) return "Unavailable · " + why;
         return c.runs === "panel" ? "Runs in the shell · follow it in Tasks"
              : c.runs === "terminal" ? "Opens in " + Apps.terminalLabel + " · the shell only knows the window opened"
-             : c.runs === "menu" ? "Shows the island icon menu" : "Opens a surface";
+             : c.runs === "menu" ? "Shows the capsule icon menu" : "Opens a surface";
     }
 
     /**

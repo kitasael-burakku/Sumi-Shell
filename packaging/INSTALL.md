@@ -283,7 +283,7 @@ require("sumi-shell")
   doesn't pass the syntax check, or when no running Hyprland answers. The preview prints where to add the lines and how to
   check them.
 - **Blur behind the shell (optional look).** The Lua fragment asks Hyprland to blur what is behind the shell's main
-  layer (`sumi-shell`: bar, island, panels…) and behind its floating UIs (`sumi-audio`, `-calendar`,
+  layer (`sumi-shell`: Dynamic Bar, Dynamic Capsule or Edge, panels…) and behind its floating UIs (`sumi-audio`, `-calendar`,
   `-keybinds`, `-monitor`, `-notifications`, `-settings`, `-wallhaven`), with `ignore_alpha = 0.40` so fully transparent areas and
   most of the shadow stay out. It only shows with **Glass opacity** below 100 %, and it needs `decoration:blur` on;
   `ignore_alpha` must stay below your opacity, or the blur disappears again. Hyprland applies a layer rule's blur when

@@ -21,6 +21,12 @@ any MINOR release; every such change is listed here with what to do about it.
   «Glass».
 - Versions follow Semantic Versioning 2.0.0. `install.sh update` compares versions, including prereleases, by SemVer
   precedence.
+- The four presentations have their own names in Settings, the shortcut help and the documentation: **Dynamic
+  Capsule** (was Dynamic Island), **Dynamic Bar** (was Persistent bar), **Edge** (was Notch) and **Bar-Edge** (was
+  Bar-notch). Only the names changed: settings keys, stored values (`island`, `bar`, `dock`, `notch…`), IPC verbs and
+  values, and shortcut names stay the same, so nothing needs migrating.
+- The Sumi SDDM notch is called **Login Edge** in the Login screen window's preview and in Settings. The group and
+  option labels inside that window come from Sumi SDDM's own schema and change with it.
 
 ### Added
 
