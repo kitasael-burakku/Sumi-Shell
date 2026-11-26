@@ -36,6 +36,18 @@ any MINOR release; every such change is listed here with what to do about it.
   matugen output.
 - `tests/release/version-check.py`: checks that `version.json`, the Arch recipes, the README, `API.md` and this file
   agree.
+- Optional integration with `sysupdate` 2.0 (a separate tool, part of Sumi-Files; nothing changes
+  without it):
+  - The updates cache may carry a `risk` field (additive; `text`, `tooltip` and `class` are unchanged). A non-empty
+    `risk` means `sysupdate check` found a package that would run against dependencies it was not rebuilt for, such
+    as quickshell against a new Qt. The Dashboard («Upgrade system» and the Overview issue), the Dynamic Bar and the
+    Dynamic Capsule show it in red. Upgrade still works: the shell only informs.
+  - With risk and `sysupdate` installed, the Dashboard offers **Safe upgrade**: `sysupdate -i <globs>` in the
+    terminal, holding back what sysupdate suggests.
+  - The built-in provider (`updates-provider.py`) asks `sysupdate check --json --no-sync --no-aur` after
+    `checkupdates` and writes `risk`, `risk_packages` and `risk_ignore`. `--upgrade` runs sysupdate instead of
+    yay/paru or `sudo pacman -Syu`, and `--upgrade --ignore <globs>` holds packages back.
+  - The built-in provider retries the AUR query (`-Qua`) once after a network error.
 
 ### Fixed
 

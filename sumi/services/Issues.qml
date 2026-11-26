@@ -150,9 +150,11 @@ Singleton {
         if (Updates.stale) return Object.assign(s, { state: "unchecked", text: "Updates not checked yet",
             detail: Updates.recheckStalled ? "the check did not finish" : "the timer has not run in this session",
             action: "retry", actionLabel: "Check now" });
-        if (Updates.count > 0) return Object.assign(s, { state: "issue", rank: 2,
-            text: Updates.count + (Updates.count === 1 ? " update pending" : " updates pending"),
-            detail: Updates.upgradeWhy.length > 0 ? Updates.sourceLabel + " · can't upgrade here: " + Updates.upgradeWhy : Updates.sourceLabel,
+        // 2026-11-25: con riesgo (sysupdate) lo dice el detalle, delante; Upgrade sigue igual (sólo se informa)
+        if (Updates.count > 0) return Object.assign(s, { state: "issue", rank: 2, risky: Updates.risky,
+            text: Updates.count + (Updates.count === 1 ? " update pending" : " updates pending") + (Updates.risky ? " · risky" : ""),
+            detail: (Updates.risky ? Updates.riskShort + " · " : "")
+                + (Updates.upgradeWhy.length > 0 ? Updates.sourceLabel + " · can't upgrade here: " + Updates.upgradeWhy : Updates.sourceLabel),
             action: Updates.upgradeWhy.length > 0 ? "" : "update", actionLabel: Updates.upgradeWhy.length > 0 ? "" : "Upgrade" });
         return Object.assign(s, { state: "ok", text: "System up to date" });
     }

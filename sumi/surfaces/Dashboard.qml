@@ -494,10 +494,21 @@ Surface {
                 status: Updates.notSetUp.length > 0 ? Updates.notSetUp
                     : Updates.upgradeWhy.length > 0 ? Updates.upgradeWhy
                     : Updates.stale || Updates.failed ? "Status unknown · opens " + term
+                    : n > 0 && Updates.risky ? n + " pending · " + Updates.riskShort
                     : n > 0 ? n + " pending · opens " + term : "Nothing pending",
-                tone: n > 0 && !blocked ? "warn" : "",
+                // 2026-11-25: con riesgo (sysupdate), en rojo; sigue activa: la decisión es del usuario
+                tone: n > 0 && !blocked ? (Updates.risky ? "bad" : "warn") : "",
                 enabled: !blocked && (Updates.any || Updates.stale)
             }));
+            // 2026-11-25: «Safe upgrade» sólo existe con riesgo y sysupdate (retiene lo que éste propone)
+            if (n > 0 && Updates.risky && Updates.safeWhy.length === 0) {
+                const held = Updates.riskIgnore;
+                out.push(item({
+                    id: "update-safe", glyph: "update", title: "Safe upgrade",
+                    status: "Holds back " + held.slice(0, 2).join(", ") + (held.length > 2 ? "…" : "") + " · opens " + term,
+                    tone: "", enabled: true
+                }));
+            }
         }
         for (const t of root.panelTasks) {
             // 11A-1: en curso sigue activa: lleva a su consola en Tasks, no lanza otro
@@ -545,6 +556,7 @@ Surface {
         const a = root.actionList.find(x => x.id === id);
         if (a && a.enabled === false) return;           // F2d: apagada con su motivo en la etiqueta
         if (id === "downed") { if (root.downedWatch) root.downedWatch = false; else root.runDowned(); return; }
+        if (id === "update-safe") { if (Updates.updateSafe()) root.requestClose(); return; }
         const t = Tasks.byId(id);
         if (!t) return;
         // etapa B: lo del panel se sigue (o se arranca, con su pregunta) en la capa Tasks

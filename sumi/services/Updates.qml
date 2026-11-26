@@ -18,6 +18,12 @@ import Quickshell.Io
  *     {"text":"󰚰 2","tooltip":"2 updates available\n...","class":["pending"]}
  *     {"text":"󰄬",  "tooltip":"System up to date\n...","class":["updated"]}
  *
+ * Campos aditivos (2026-11-25): `risk` (texto; "" o ausente = sin riesgo) lo escribe el proveedor cuando
+ * `sysupdate check` avisa de que un paquete correría contra dependencias para las que no se reconstruyó
+ * (quickshell frente a un Qt nuevo). Con él, `risk_packages` y `risk_ignore` (listas JSON; los escriben el
+ * propio y el updates.sh del rice desde el 2026-11-25). Una caché sin las listas (versión anterior del rice o de
+ * otro proveedor) los saca del texto. La shell sólo informa: Upgrade nunca se bloquea.
+ *
  * RENUNCIA CONSCIENTE (ADR-16): con el sistema al dia, Waybar dibuja un check.
  * El shell no dibuja nada: un aviso sin nada que avisar ocupa cero pixeles.
  */
@@ -57,6 +63,18 @@ Singleton {
      */
     property bool failed: false
     property bool stale: true
+
+    /**
+     * 2026-11-25: el riesgo de sysupdate, si la caché lo trae (opcional; una caché vieja sin el campo = sin
+     * riesgo). `riskPackages` lo que se rompería; `riskIgnore` los globs que sysupdate propone retener.
+     */
+    property string riskText: ""
+    property var riskPackages: []
+    property var riskIgnore: []
+    readonly property bool risky: root.riskText.length > 0
+    /** Lo que dice la UI en una frase corta: «quickshell may break» (los nombres, o «Some packages»). */
+    readonly property string riskShort: !root.risky ? ""
+        : (root.riskPackages.length > 0 ? root.riskPackages.join(", ") : "Some packages") + " may break"
 
     readonly property bool any: root.count > 0 || root.failed
 
@@ -104,7 +122,33 @@ Singleton {
             root.state = "";
             root.failed = false;
             root.checkedAt = 0;
+            root.riskText = "";
+            root.riskPackages = [];
+            root.riskIgnore = [];
         }
+    }
+
+    /** Los globs que se pueden pasar a `sysupdate -i` tal cual (como `clean_globs` del proveedor). */
+    function cleanGlobs(items) {
+        const out = [];
+        for (const g of items || [])
+            for (const part of String(g).split(",")) {
+                const t = part.trim();
+                if (t.length > 0 && /^[A-Za-z0-9@._+*?\[\]-]+$/.test(t) && out.indexOf(t) < 0) out.push(t);
+            }
+        return out;
+    }
+    function parseRisk(o) {
+        const text = typeof o.risk === "string" ? o.risk.trim() : "";
+        root.riskText = text;
+        if (text.length === 0) { root.riskPackages = []; root.riskIgnore = []; return; }
+        // el propio los da aparte; con el updates.sh del rice, del texto («<paquetes> would run … -i '<globs>'»)
+        const pk = Array.isArray(o.risk_packages) ? o.risk_packages.map(String).filter(x => x.length > 0) : null;
+        const ig = Array.isArray(o.risk_ignore) ? o.risk_ignore : null;
+        const mp = /^(.+?) would run against /.exec(text);
+        const mi = /sysupdate -i '([^']+)'/.exec(text);
+        root.riskPackages = pk ? pk : mp && mp[1] !== "some packages" ? mp[1].split(",").map(x => x.trim()).filter(x => x.length > 0) : [];
+        root.riskIgnore = root.cleanGlobs(ig ? ig : mi ? [mi[1]] : []);
     }
 
     function parse(text) {
@@ -128,6 +172,7 @@ Singleton {
         for (let i = 0; i < list.length; i++)
             if (list[i] !== "error") { st = list[i]; break; }
         root.state = st;
+        root.parseRisk(o);
         root.stale = false;
     }
 
@@ -157,6 +202,20 @@ Singleton {
         // F4e: sin tarea, el propio sabe actualizar (gestor de AUR o sudo pacman, en la terminal)
         : root.builtinProvider ? (root.notSetUp || Capabilities.whyFirst(["apps.terminal"]))
         : Tasks.status === "loading" ? "" : "No upgrade task in tasks.json"
+    /**
+     * 2026-11-25: «Safe upgrade», la actualización reteniendo lo que sysupdate propone (`-i <globs>`). Sólo
+     * existe con riesgo y sysupdate instalado; es una opción más, no sustituye a Upgrade.
+     */
+    readonly property bool sysupdateFound: {
+        const c = Capabilities.caps["system.updates"];
+        return !!(c && c.detail && c.detail.sysupdate);
+    }
+    readonly property string safeWhy: !root.risky || root.riskIgnore.length === 0 ? "No risky packages to hold back"
+        : root.testPath.length > 0 ? ""
+        : root.off ? "Updates are turned off in Settings"
+        : root.notSetUp.length > 0 ? root.notSetUp
+        : !root.sysupdateFound ? "sysupdate is not installed"
+        : Capabilities.whyFirst(["apps.terminal"])
     readonly property string listWhy: root.off ? "Updates are turned off in Settings"
         : root.notSetUp || (root.testPath.length > 0 ? "" : (Providers.whyNot("updates", "list") || Capabilities.whyFirst(["apps.terminal"])))
 
@@ -171,6 +230,17 @@ Singleton {
         // F4e: sin tarea, la orden del proveedor propio (actualiza, vuelve a comprobar y espera ⏎)
         return root.builtinProvider ? Apps.terminalArgv(["python3", root.providerScript, "--upgrade"], { title: "system-upgrade" }) : null;
     }
+    /**
+     * Con el propio, su --upgrade (vuelve a comprobar la caché al acabar); con otro proveedor, sysupdate
+     * directo (su `after` refresca la caché del rice).
+     */
+    function safeArgv() {
+        if (root.riskIgnore.length === 0) return null;
+        const globs = root.riskIgnore.join(",");
+        const argv = root.builtinProvider ? ["python3", root.providerScript, "--upgrade", "--ignore", globs]
+                                          : ["sysupdate", "-i", globs];
+        return Apps.terminalArgv(argv, { title: "system-upgrade" });
+    }
     /** F4e: la lista la da el proveedor (el del autor: los mismos argv de siempre, `updates.sh --list`). */
     function listArgv() {
         const argv = Providers.command("updates", "list", {});
@@ -182,7 +252,9 @@ Singleton {
                  checkedAt: root.checkedAt, off: root.off, builtin: root.builtinProvider, source: root.sourceLabel,
                  notSetUp: root.notSetUp, upgradeWhy: root.upgradeWhy, listWhy: root.listWhy, cache: cache.path,
                  provider: Providers.resolve("updates"), upgradeTask: root.upgradeTask ? root.upgradeTask.id : "",
-                 updateArgv: root.updateArgv(), listArgv: root.listArgv(), checkArgv: Providers.command("updates", "check", {}) };
+                 updateArgv: root.updateArgv(), listArgv: root.listArgv(), checkArgv: Providers.command("updates", "check", {}),
+                 risky: root.risky, riskText: root.riskText, riskShort: root.riskShort, riskPackages: root.riskPackages,
+                 riskIgnore: root.riskIgnore, sysupdate: root.sysupdateFound, safeWhy: root.safeWhy, safeArgv: root.safeArgv() };
     }
 
     /** on-click: actualizar el sistema en una terminal (F4e: la tarea si la hay; si no, la del proveedor propio). */
@@ -195,6 +267,17 @@ Singleton {
         // 11A-2: sólo se sabe que se abrió la terminal (nunca «Completed»)
         Activity.record({ kind: t ? t.id : "update", label: t ? t.label : "Update the system", result: "opened",
                           summary: "Opened in terminal" });
+        return true;
+    }
+
+    /** «Safe upgrade»: actualizar en una terminal reteniendo los paquetes de riesgo (sysupdate -i). */
+    function updateSafe() {
+        if (root.safeWhy.length > 0) return false;
+        const argv = root.safeArgv();
+        if (!argv) return false;
+        Apps.spawn(argv, Apps.terminalName);
+        Activity.record({ kind: "update-safe", label: "Safe upgrade", result: "opened",
+                          summary: "Opened in terminal · holding back " + root.riskIgnore.join(", ") });
         return true;
     }
 

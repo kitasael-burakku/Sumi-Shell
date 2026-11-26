@@ -74,7 +74,7 @@ Nothing needs editing in the QML.
 | Automatic Lua integration | `luac` matching Hyprland's Lua version, `readelf` (`binutils`). The manual fragment does not need them. |
 | Login screen management | Sumi SDDM with CLI API 1, a separate project |
 | External monitor brightness | `ddcutil` with device access |
-| Update checks | `pacman-contrib`, `fakeroot`, optionally yay/paru, or a provider script |
+| Update checks | `pacman-contrib`, `fakeroot`, optionally yay/paru, or a provider script; `sysupdate` (optional) adds the risk check and Safe upgrade |
 | Typography and other apps' themes | `python-fonttools` for font diagnostics, `python-cbor2` for Qt 5 plugin metadata, GSettings schemas for GTK, `xsettingsd` for the optional X11 transport |
 
 Notifications and the Polkit agent are **off by default**. Turn them on only if no other notification daemon or agent is

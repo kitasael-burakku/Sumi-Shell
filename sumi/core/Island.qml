@@ -683,7 +683,7 @@ Morph {
         if (Bt.ready && Bt.icon.length > 0) add("bluetooth", "Bluetooth");
         if (Net.ready && Net.icon.length > 0) add("wifi", "Wi-Fi");
         if (island.notifAvailable) add("notifications", island.notifLabel);
-        if (Updates.any) add("updates", "Updates");
+        if (Updates.any) add("updates", Updates.risky ? "Updates · risky" : "Updates");
         return out;
     }
 
@@ -1839,7 +1839,7 @@ Morph {
                 navKey: "updates"
                 badge: Updates.count > 0 ? String(Updates.count) : ""
                 lit: true
-                accent: (Updates.failed || Updates.state === "critical")
+                accent: (Updates.failed || Updates.risky || Updates.state === "critical")
                         ? Theme.danger : Theme.warn
                 onActivated: Updates.update()
                 onSecondary: Updates.list()

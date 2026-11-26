@@ -917,7 +917,9 @@ def c_updates(q):
             miss = argv_missing([expand_home(a) for a in sc["argv"]])
             if miss:
                 return cap("unavailable", "providers.json", miss, installed=False)
-        return cap("available", prov.get("label") or "script", installed=True, kind="script")
+        # sysupdate (opcional): con él la shell ofrece «Safe upgrade» cuando la caché trae un riesgo
+        return cap("available", prov.get("label") or "script", installed=True, kind="script",
+                   sysupdate=bool(which("sysupdate")))
     spec = importlib.util.spec_from_file_location(
         "kt_updates_provider", os.path.join(os.path.dirname(os.path.abspath(__file__)), "updates-provider.py"))
     up = importlib.util.module_from_spec(spec)
@@ -925,7 +927,8 @@ def c_updates(q):
     r = up.resolve()
     if not r["backend"]:
         return cap("unavailable", "", r["why"], installed=False)
-    return cap("available", r["label"], installed=True, kind="builtin", aur=r["aur"])
+    return cap("available", r["label"], installed=True, kind="builtin", aur=r["aur"],
+               sysupdate=bool(which("sysupdate")))
 
 
 # F3b (H-28): las terminales que se buscan con apps.terminal = auto, en orden (lib/terminal.js LIST)

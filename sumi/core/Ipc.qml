@@ -202,7 +202,8 @@ Scope {
                                screenStreams: Privacy.screenStreams,
                                screencopy: Privacy.screencopyActive, screencopyClients: Privacy.screencopyClients,
                                capturing: Privacy.capturing() },
-                    updates: { count: Updates.count, state: Updates.state, failed: Updates.failed, stale: Updates.stale }
+                    updates: { count: Updates.count, state: Updates.state, failed: Updates.failed, stale: Updates.stale,
+                               risky: Updates.risky }
                 },
                 tray: { count: Tray.count, needsAttention: Tray.needsAttention, items: Tray.summary() },
                 // Fase 9.d: la puerta de muestreo de los sensores. Con la

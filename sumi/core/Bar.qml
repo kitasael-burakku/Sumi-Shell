@@ -172,7 +172,8 @@ Item {
             : "Keep awake: off", "");
         if (Notifs.enabled) add("notifications", NotifHistory.unread > 0
             ? NotifHistory.unread + " unread notifications" : "Notifications");
-        if (Updates.any) add("updates", Updates.failed ? "Update check failed" : Updates.count + " updates", "");
+        if (Updates.any) add("updates", Updates.failed ? "Update check failed"
+            : Updates.count + " updates" + (Updates.risky ? " · risky" : ""), "");
         add("control", bar.controlLabel, "controlCenter");
         add("power", "Session power");
         return out;
@@ -1304,7 +1305,7 @@ Item {
                 visible: Updates.any
                 glyph: Updates.failed ? "alert" : "update"
                 text: Updates.count > 0 ? String(Updates.count) : ""
-                tint: (Updates.failed || Updates.state === "critical") ? Theme.danger : Theme.warn
+                tint: (Updates.failed || Updates.risky || Updates.state === "critical") ? Theme.danger : Theme.warn
                 onSecondary: Updates.list()
                 onMiddle: Updates.recheck()
             }

@@ -5,25 +5,35 @@ Lo usa la shell con `providers.updates` = auto o pacman. Hace lo mismo que el `u
 (que sigue siendo su proveedor `script`, por `updates-check.service`), con la MISMA caché, para que Updates,
 Issues y el Dashboard la lean igual con uno u otro:
 
-    $XDG_RUNTIME_DIR/sumi-updates.cache   {"text": "󰚰 N" | "󰄬", "tooltip": …, "class": [pending|critical|updated, error?]}
+    $XDG_RUNTIME_DIR/sumi-updates.cache   {"text": "󰚰 N" | "󰄬", "tooltip": …, "class": [pending|critical|updated, error?],
+                                           "risk": "" | texto, "risk_packages": […], "risk_ignore": […]}
     $XDG_RUNTIME_DIR/sumi-updates.pkgs    origen<TAB>paquete<TAB>versión<TAB>nueva (para la lista)
 
     updates-provider.py --check [--detach]  comprobar y escribir la caché (--detach: unidad transitoria
                                           o proceso directo con lock heredado; la shell no espera y una
                                           recarga no corta la comprobación)
     updates-provider.py --list              la lista legible (se abre en la terminal del usuario)
-    updates-provider.py --upgrade           actualizar en la terminal (el gestor de AUR si lo hay, si no
-                                            `sudo pacman -Syu`), volver a comprobar y esperar ⏎
+    updates-provider.py --upgrade [--ignore GLOBS]
+                                            actualizar en la terminal (sysupdate si está; si no, el gestor de
+                                            AUR o `sudo pacman -Syu`), volver a comprobar y esperar ⏎.
+                                            --ignore (sólo con sysupdate) retiene esos paquetes (`-i`)
     updates-provider.py --resolve           qué hay (JSON); no comprueba nada
 
 Backends: pacman (`checkupdates` de pacman-contrib: no toca la base real) más AUR con yay o paru si están.
 Los demás gestores (apt, dnf, zypper, flatpak) son de F7: aquí, `auto` en un sistema sin pacman dice que no hay
 proveedor para él. A diferencia de updates.sh, no manda notificaciones: lo enseña la shell.
+
+sysupdate (2026-11-25, opcional): si está en el PATH, `--check` le pide su comprobación de riesgo
+(`sysupdate check --json --no-sync --no-aur`, sólo lectura) y la deja en la caché con los mismos campos que
+updates.sh: `risk` (el texto; "" = sin riesgo) y, además, `risk_packages` y `risk_ignore` (lo que sysupdate
+propone retener). La watchlist es de sysupdate (ADR-13): aquí sólo se copia su veredicto. `--upgrade` lo
+ejecuta en vez de yay / `sudo pacman -Syu`. Sin sysupdate, todo sigue como antes.
 """
 import sys
 sys.dont_write_bytecode = True   # 2026-11-07: sin __pycache__ en el árbol de la shell (desinstalar lo dejaba a medias)
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -34,6 +44,9 @@ CACHE = os.environ.get("KT_UPDATES_CACHE") or os.path.join(RUN, "sumi-updates.ca
 PKGS = CACHE[:-len(".cache")] + ".pkgs" if CACHE.endswith(".cache") else CACHE + ".pkgs"
 PREFIX = os.environ.get("SUMI_WALL_UNIT_PREFIX") or "app-sumi-"
 FEW, MANY = 12, 50
+SYSUPDATE_TIMEOUT = 60
+# lo que se acepta como glob de --ignore (nombres de paquete de pacman más comodines); nunca rutas
+GLOB = re.compile(r"^[A-Za-z0-9@._+*?\[\]-]+$")
 
 
 def resolve():
@@ -74,18 +87,73 @@ def run_check(r):
         if len(f) >= 4:
             pkgs.append(("pacman", f[0], f[1], f[3]))
     if r["aur"]:
-        try:
-            a = subprocess.run([r["aur"], "-Qua"], capture_output=True, text=True, timeout=20)
-            # -Qua sale con 1 también sin novedades: un fallo de verdad escribe en stderr
-            if a.returncode != 0 and a.stderr.strip():
-                errors.append("%s: %s" % (r["aur"], one_line(a.stderr)))
-            for line in a.stdout.splitlines():
-                f = line.split()
-                if len(f) >= 4:
-                    pkgs.append(("aur", f[0], f[1], f[3]))
-        except subprocess.TimeoutExpired:
-            errors.append("%s: timeout (20s)" % r["aur"])
+        a, err = query_aur(r["aur"])
+        if err:
+            # Un reintento, como updates.sh: el RPC del AUR corta conexiones de vez en cuando (visto el
+            # 2026-11-25, «connection reset by peer») y un solo tropiezo marcaba toda la comprobación como fallida.
+            time.sleep(3)
+            a, err = query_aur(r["aur"])
+        if err:
+            errors.append(err)
+        for line in (a.stdout if a else "").splitlines():
+            f = line.split()
+            if len(f) >= 4:
+                pkgs.append(("aur", f[0], f[1], f[3]))
     return pkgs, "; ".join(errors)
+
+
+def query_aur(helper):
+    """(proceso | None, error). -Qua sale con 1 también sin novedades: un fallo de verdad escribe en stderr."""
+    try:
+        a = subprocess.run([helper, "-Qua"], capture_output=True, text=True, timeout=20)
+    except subprocess.TimeoutExpired:
+        return None, "%s: timeout (20s)" % helper
+    except OSError as e:
+        return None, "%s: %s" % (helper, e)
+    if a.returncode != 0 and a.stderr.strip():
+        return a, "%s: %s" % (helper, one_line(a.stderr))
+    return a, ""
+
+
+def clean_globs(items):
+    """Los globs de sysupdate que se pueden pasar a `-i` tal cual (sin comas ni rutas); el resto se descarta."""
+    out = []
+    for g in items or []:
+        for part in str(g).split(","):
+            part = part.strip()
+            if part and GLOB.match(part) and part not in out:
+                out.append(part)
+    return out
+
+
+def risk_check():
+    """El veredicto de riesgo de sysupdate: {"risk": texto, "risk_packages": [...], "risk_ignore": [...]}.
+
+    Vacío (sin riesgo, sin sysupdate o si no pudo comprobar) = {"risk": ""}. --no-sync reutiliza la base
+    temporal que checkupdates acaba de sincronizar (sin red); --no-aur porque del AUR no hay comprobación.
+    El texto es el de updates.sh del rice, para que la shell lo enseñe igual con uno u otro proveedor.
+    """
+    if not shutil.which("sysupdate"):
+        return {"risk": ""}
+    try:
+        p = subprocess.run(["sysupdate", "check", "--json", "--no-sync", "--no-aur"],
+                           capture_output=True, text=True, timeout=SYSUPDATE_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError):
+        return {"risk": ""}
+    if p.returncode not in (0, 10):        # 1 = no pudo comprobar: no se inventa un riesgo
+        return {"risk": ""}
+    try:
+        d = json.loads(p.stdout)
+    except ValueError:
+        return {"risk": ""}
+    if not isinstance(d, dict) or not d.get("risky"):
+        return {"risk": ""}
+    names = [str(x.get("package")) for x in d.get("risks") or [] if isinstance(x, dict) and x.get("package")]
+    ignore = clean_globs(d.get("suggested_ignore"))
+    text = (", ".join(names) or "some packages") + " would run against dependencies it was not rebuilt for"
+    if ignore:
+        text += " — safe: sysupdate -i '" + ",".join(ignore) + "'"
+    return {"risk": text, "risk_packages": names, "risk_ignore": ignore}
 
 
 def table(pkgs):
@@ -129,14 +197,18 @@ def check():
             tooltip += "\n\n<tt>" + esc(table(pkgs)) + "</tt>"
         if kern:
             tooltip += "\n\n⚠ Kernel update (%s) — reboot after updating" % ", ".join(kern)
+    # como updates.sh: sólo con pendientes de pacman (el riesgo es de los repositorios oficiales)
+    risk = risk_check() if pac > 0 else {"risk": ""}
+    if risk["risk"]:
+        tooltip += "\n\n⚠ Risky: " + esc(risk["risk"])
     classes = [css]
     if error:
         text += " 󰀦 "
         tooltip += "\n\n⚠ " + esc(error)
         classes.append("error")
-    write_atomic(CACHE, json.dumps({"text": text, "tooltip": tooltip, "class": classes,
-                                    "provider": r["label"]}, ensure_ascii=False) + "\n")
-    print(json.dumps({"total": total, "pacman": pac, "aur": aur, "error": error}))
+    write_atomic(CACHE, json.dumps(dict({"text": text, "tooltip": tooltip, "class": classes,
+                                         "provider": r["label"]}, **risk), ensure_ascii=False) + "\n")
+    print(json.dumps({"total": total, "pacman": pac, "aur": aur, "error": error, "risky": bool(risk["risk"])}))
     return 0
 
 
@@ -168,13 +240,21 @@ def listing():
     return 0
 
 
-def upgrade():
+def upgrade(ignore=None):
     r = resolve()
     if not r["backend"]:
         print("updates-provider: " + r["why"], file=sys.stderr)
         return 1
-    argv = [r["aur"], "-Syu"] if r["aur"] else ["sudo", "pacman", "-Syu"]
-    print("$ " + " ".join(argv))
+    if shutil.which("sysupdate"):
+        # sysupdate ya enseña lo pendiente, verifica y da un veredicto; su pausa se omite porque aquí
+        # se vuelve a comprobar después y se espera ⏎ una sola vez, al final
+        argv = ["sysupdate", "--no-pause"] + (["-i", ",".join(ignore)] if ignore else [])
+    elif ignore:
+        print("updates-provider: --ignore needs sysupdate, which is not installed", file=sys.stderr)
+        return 2
+    else:
+        argv = [r["aur"], "-Syu"] if r["aur"] else ["sudo", "pacman", "-Syu"]
+    print("$ " + " ".join(argv), flush=True)
     rc = subprocess.call(argv)
     print("\nChecking again…")
     check()
@@ -232,6 +312,12 @@ def main(argv):
         return listing()
     if argv == ["--upgrade"]:
         return upgrade()
+    if len(argv) == 3 and argv[:2] == ["--upgrade", "--ignore"]:
+        globs = clean_globs([argv[2]])
+        if not globs or len(globs) != len([x for x in argv[2].split(",") if x.strip()]):
+            print("updates-provider: --ignore takes package names or globs: " + argv[2], file=sys.stderr)
+            return 2
+        return upgrade(globs)
     print("updates-provider: unknown option: " + " ".join(argv), file=sys.stderr)
     return 1
 
