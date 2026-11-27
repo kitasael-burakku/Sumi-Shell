@@ -291,8 +291,8 @@ Item {
             width: parent.width; height: search.height + 12 * root.s
             radius: Metrics.rSm * root.s
             color: Theme.tileBg
-            border.width: 1
-            border.color: search.input.activeFocus ? Theme.primary : Theme.hair
+            border.width: search.input.activeFocus ? Metrics.focusWidth * root.s : 1
+            border.color: search.input.activeFocus ? Theme.focusRing : Theme.hair
         }
         SearchField {
             id: search

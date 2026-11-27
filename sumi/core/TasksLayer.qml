@@ -957,7 +957,7 @@ PanelWindow {
                                     anchors.fill: parent
                                     radius: Metrics.r(6) * win.s
                                     color: trRow.sel ? Theme.selBg : "transparent"
-                                    border.width: trRow.sel ? 1 : 0
+                                    border.width: trRow.sel ? Metrics.focusWidth * win.s : 0
                                     border.color: Theme.selBorder
                                 }
                                 Item {

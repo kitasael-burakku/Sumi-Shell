@@ -313,33 +313,8 @@ Surface {
     implicitHeight: col.implicitHeight
 
     /** Una fila de la ficha: etiqueta a la izquierda, valor a la derecha. */
-    component Fact: Item {
-        property string label: ""
-        property string value: ""
-        height: 26 * root.s
-
-        Text {
-            id: factLabel
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.label
-            color: Theme.outlineText
-            font.family: Typography.ui
-            font.pixelSize: Typography.label * root.s
-        }
-        Text {
-            id: factValue
-            anchors.left:factLabel.right; anchors.leftMargin:12 * root.s
-            anchors.right: parent.right
-            horizontalAlignment:Text.AlignRight; elide:Text.ElideMiddle
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.value.length > 0 ? parent.value : "—"
-            color: parent.value.length > 0 ? Theme.fg : Theme.outlineText
-            font.family: Typography.ui
-            font.pixelSize: Typography.body * root.s
-            font.features: ({ "tnum": 1 })
-        }
-    }
+    /** La fila de ficha común (`components/FactRow`, fase 3B, ADR-42). */
+    component Fact: FactRow { s: root.s }
 
     function revealItem(item) {
         if (!root.open || !item) return;

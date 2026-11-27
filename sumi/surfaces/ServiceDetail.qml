@@ -310,31 +310,8 @@ Surface {
         return Theme.fgVariant;
     }
 
-    component Fact: Item {
-        property string label: ""
-        property string value: ""
-        width: col.width
-        height: value.length > 0 ? 16 * root.s : 0
-        visible: height > 0
-        Text {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.label
-            color: Theme.outlineText
-            font.family: Typography.ui
-            font.pixelSize: Typography.caption * root.s
-            font.capitalization: Font.AllUppercase
-            font.letterSpacing: 0.8 * root.s
-        }
-        Text {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.value
-            color: Theme.fg
-            font.family: Typography.ui
-            font.pixelSize: Typography.caption * root.s
-        }
-    }
+    /** La fila de ficha común, en su variante densa (`components/FactRow`, fase 3B, ADR-42); sin valor, no se ve. */
+    component Fact: FactRow { s: root.s; width: col.width; dense: true; hideEmpty: true }
 
     Column {
         id: col

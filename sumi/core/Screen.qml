@@ -1778,7 +1778,7 @@ Scope {
              * el layout. Dice el nombre del botón bajo el ratón o con el foco de
              * teclado (`island.tipText`); vacío = oculto.
              */
-            Glass {
+            Tooltip {
                 id: hoverTip
                 s: screen.s
                 anchors.top: island.bottom
@@ -1786,46 +1786,12 @@ Scope {
                 anchors.topMargin: 7 * screen.s + (recPill.shown ? recPill.height + Metrics.recPillGap * screen.s : 0)
                 anchors.horizontalCenter: island.horizontalCenter
                 z: 5
-
-                /** Retiene el último texto no vacío para que no se borre a mitad del fundido. */
-                property string shownLabel: ""
-                Connections {
-                    target: island
-                    function onTipTextChanged() {
-                        if (island.tipText.length > 0)
-                            hoverTip.shownLabel = island.tipText;
-                    }
-                }
-
-                readonly property bool show: island.tipText.length > 0
-                    && !screen.concealed && !osd.active && !Lock.engaged
-
-                width: tipLabel.implicitWidth + 18 * screen.s
-                height: tipLabel.implicitHeight + 10 * screen.s
-                radius: Metrics.rSm * screen.s
-
-                visible: opacity > 0.01
-                opacity: hoverTip.show ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard } }
-
-                transform: Translate {
-                    // El desplazamiento es movimiento: con reduce motion, ninguno.
-                    y: (hoverTip.show || Motion.still) ? 0 : -4 * screen.s
-                    Behavior on y {
-                        enabled: !Motion.still
-                        NumberAnimation { duration: Motion.fast; easing.type: Motion.easeStandard }
-                    }
-                }
-
-                Text {
-                    id: tipLabel
-                    anchors.centerIn: parent
-                    text: hoverTip.shownLabel
-                    color: Theme.fg
-                    font.family: Typography.ui
-                    font.pixelSize: Typography.caption * screen.s
-                    font.weight: Font.Medium
-                }
+                // fase 3A (ADR-42): el tooltip común; con el teclado, al momento; con el puntero, tras la espera
+                text: island.tipText
+                active: island.tipText.length > 0 && !screen.concealed && !osd.active && !Lock.engaged
+                immediate: island.navCurrentKey.length > 0
+                readonly property bool show: hoverTip.shown
+                readonly property string shownLabel: hoverTip.shownText
             }
 
             /** Sin geometría: sólo decide cuándo y qué. Lo pinta el island. */

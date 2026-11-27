@@ -70,7 +70,7 @@ Item {
         width: root.trackW
         radius: Metrics.pill(width)
         color: Style.terminal ? "transparent" : root.acc.track
-        opacity: root.available ? 1 : 0.5
+        opacity: root.available ? 1 : Theme.disabledOpacity
 
         Rectangle {
             id: fill

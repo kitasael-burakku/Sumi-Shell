@@ -620,8 +620,9 @@ Item {
                     anchors.fill: frame
                     radius: frame.radius
                     color: "transparent"
-                    border.width: cell.selected ? 2.5 * cat.s : 1
-                    border.color: cell.selected ? Theme.primary
+                    // sobre una imagen, el doble del grosor de foco (fase 3A, ADR-42)
+                    border.width: cell.selected ? 2 * Metrics.focusWidth * cat.s : 1
+                    border.color: cell.selected ? Theme.focusRing
                         : cell.hot ? Qt.alpha(Theme.primary, 0.55) : Theme.hair
                     Behavior on border.color { ColorAnimation { duration: Motion.fast } }
                 }

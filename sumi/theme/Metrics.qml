@@ -17,6 +17,11 @@ Singleton {
      * Estos no sustituyen a los anchos de superficie de más abajo (esos son
      * medidas de una pieza concreta); son el vocabulario para el aire interior.
      */
+    /*
+     * Regla para código nuevo (fase 3D de coherencia, ADR-42, decisión del autor): márgenes, huecos y rellenos con
+     * esta escala (`Metrics.spN * s`), no con cifras sueltas. Las superficies ya aprobadas a la vista conservan las
+     * suyas; no se migran en bloque.
+     */
     readonly property real sp1: 4      // dentro de un grupo pegado
     readonly property real sp2: 8      // entre elementos de una fila
     readonly property real sp3: 12     // entre grupos
@@ -53,6 +58,14 @@ Singleton {
      */
     readonly property real focusWidth: 1.5
     readonly property real focusGap: 2
+    /**
+     * Tamaños de glifo por papel (fase 3C de coherencia, ADR-42), en px lógicos a escala 1: `glyphSm` el mini botón de
+     * un pie o una cabecera, `glyphMd` el botón de glifo y el indicador, `glyphLg` el de un estado vacío. Para lo nuevo;
+     * los literales de la barra y la isla (ya aprobados a la vista) se quedan.
+     */
+    readonly property real glyphSm: 12
+    readonly property real glyphMd: 16
+    readonly property real glyphLg: 20
     /** Objetivo mínimo de clic (DESIGN §5, «al menos 32 × 32»). */
     readonly property real hitMin: 32
 

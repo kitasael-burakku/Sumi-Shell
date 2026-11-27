@@ -827,7 +827,7 @@ Surface {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 20 * root.s
                 height: 16 * root.s
-                opacity: root.previousEntry ? 1 : 0.35
+                opacity: root.previousEntry ? 1 : Theme.disabledOpacity
                 Accessible.role: Accessible.Button
                 Accessible.name: root.previousEntry ? "Restore previous: " + Wallpaper.baseName(root.previousEntry.path) + " (P)"
                                                     : "Restore previous: nothing yet"
@@ -882,27 +882,13 @@ Surface {
             }
 
             /** 9B: Configure wallpapers (teclado: S). */
-            Item {
+            GlyphButton {
                 anchors.verticalCenter: parent.verticalCenter
-                width: 20 * root.s
-                height: 16 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Configure wallpapers (S)"
-                Accessible.onPressAction: if (root.host) root.host.openSettingsAt("theme/wallpaper")
-                Icon {
-                    anchors.centerIn: parent
-                    name: "cog"
-                    size: 12 * root.s
-                    color: cfgArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: cfgArea
-                    anchors.fill: parent
-                    anchors.margins: -8 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: if (root.host) root.host.openSettingsAt("theme/wallpaper")
-                }
+                compact: true
+                s: root.s
+                glyph: "cog"
+                label: "Configure wallpapers (S)"
+                onTriggered: if (root.host) root.host.openSettingsAt("theme/wallpaper")
             }
 
             Text {

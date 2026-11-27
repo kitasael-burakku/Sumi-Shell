@@ -299,11 +299,12 @@ Surface {
     component FocusRing: Rectangle {
         property bool on: false
         anchors.fill: parent
-        anchors.margins: -4 * root.s
+        // fase 3A (ADR-42): el anillo de toda la shell (hueco, grosor y color de foco)
+        anchors.margins: -(Metrics.focusGap + Metrics.focusWidth) * root.s
         radius: Metrics.r(8) * root.s
         color: "transparent"
         border.width: on ? Metrics.focusWidth * root.s : 0
-        border.color: Theme.selBorder
+        border.color: Theme.focusRing
         visible: on && root.keyNav
     }
 
@@ -715,23 +716,13 @@ Surface {
             readonly property color ink3: onCover ? Qt.rgba(1, 1, 1, 0.70) : Theme.outlineText
             readonly property color accent: onCover ? Colors.primaryFixed : Theme.fam(palette.accent).fill
 
-            Column {
+            // fase 3B (ADR-42): el estado vacío común
+            Empty {
                 visible: !Media.has
                 anchors.centerIn: parent
-                spacing: Metrics.sp2 * root.s
-                Icon {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    name: "music"
-                    size: (root.wide ? 22 : 16) * root.s
-                    color: Theme.outline
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "No media playing"
-                    color: Theme.fgVariant
-                    font.family: Typography.ui
-                    font.pixelSize: Typography.body * root.s
-                }
+                s: root.s
+                glyph: "music"
+                text: "No media playing"
             }
 
             /**
@@ -1103,27 +1094,13 @@ Surface {
                 font.family: Typography.ui; font.pixelSize: Typography.display * root.s; font.weight: Typography.wStrong
             }
             /** Los ajustes de audio → Settings · System · Audio (teclado: S). */
-            Item {
+            GlyphButton {
                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                width: 28 * root.s
-                height: 28 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Audio settings (S)"
-                Accessible.onPressAction: if (root.host) root.host.openSettingsAt("system/audio")
-                Icon {
-                    anchors.centerIn: parent
-                    name: "cog"
-                    size: 12 * root.s
-                    color: cfgArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: cfgArea
-                    anchors.fill: parent
-                    anchors.margins: -8 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: if (root.host) root.host.openSettingsAt("system/audio")
-                }
+                compact: true
+                s: root.s
+                glyph: "cog"
+                label: "Audio settings (S)"
+                onTriggered: if (root.host) root.host.openSettingsAt("system/audio")
             }
         }
 

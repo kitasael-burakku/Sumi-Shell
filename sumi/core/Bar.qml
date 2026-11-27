@@ -765,8 +765,9 @@ Item {
             anchors.fill: parent
             radius: acc.cornerR
             color: bar.navKey === acc.key ? Theme.selBg : (accArea.containsMouse ? Theme.hoverBg : acc.restBg)
-            border.width: (bar.navKey === acc.key || acc.restEdge.a > 0) ? 1 : 0
-            border.color: bar.navKey === acc.key ? Theme.selBorder : acc.restEdge
+            // fase 3A (ADR-42): el cursor de teclado con el anillo de foco de toda la shell (grosor y color)
+            border.width: bar.navKey === acc.key ? Metrics.focusWidth * bar.s : acc.restEdge.a > 0 ? 1 : 0
+            border.color: bar.navKey === acc.key ? Theme.focusRing : acc.restEdge
             Behavior on color { ColorAnimation { duration: Motion.fast } }
         }
 
@@ -1734,9 +1735,9 @@ Item {
     }
 
     /** Para el IPC (`barState.tip`): qué diría la tooltip y si se ve. */
-    function tipInfo() { return { label: tip.label, visible: tip.visible }; }
+    function tipInfo() { return { label: tip.label, visible: tip.shown }; }
 
-    Glass {
+    Tooltip {
         id: tip
         s: bar.s
         // bajo el acceso del que habla (con teclado, el del cursor)
@@ -1759,31 +1760,14 @@ Item {
             if (bar.navKey.length === 0 && Settings.hoverPreview && e.surface.length > 0) return "";
             return e.label;
         }
+        // fase 3A (ADR-42): el tooltip común (espera con el puntero, al momento con el teclado, fundido)
+        text: tip.label
+        immediate: bar.navKey.length > 0
         // con More abierto su tooltip taparía el primer grupo del desplegable
-        visible: tip.label.length > 0 && tipDelay.done
-            && !(bar.moreOpen && (bar.hoverKey === "more" || bar.navKey === "more"))
-        width: tipText.implicitWidth + 16 * bar.s
-        height: tipText.implicitHeight + 8 * bar.s
-        radius: Metrics.r(8) * bar.s
+        active: tip.label.length > 0 && !(bar.moreOpen && (bar.hoverKey === "more" || bar.navKey === "more"))
         // del lado interior, centrada en el acceso del que habla
         readonly property point at: bar.popupAt(tip.target, tip.width, tip.height, false)
         x: tip.at.x
         y: tip.at.y
-        Text {
-            id: tipText
-            anchors.centerIn: parent
-            text: tip.label
-            color: Theme.fg
-            font.family: Typography.ui
-            font.pixelSize: Typography.caption * bar.s
-        }
-        onLabelChanged: tipDelay.restart()
-        Timer {
-            id: tipDelay
-            property bool done: false
-            interval: 400
-            onRunningChanged: if (running) done = false
-            onTriggered: done = true
-        }
     }
 }

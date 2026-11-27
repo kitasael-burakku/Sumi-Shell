@@ -37,7 +37,7 @@ Item {
         anchors.right:controls.left; anchors.rightMargin:10 * root.s
         y:2 * root.s
         text:root.title; elide:Text.ElideRight
-        color:Theme.fg; font.family:Typography.ui; font.pixelSize:Typography.title * 1.1 * root.s
+        color:Theme.fg; font.family:Typography.ui; font.pixelSize:Typography.title * root.s   // fase 3B: el título de toda subvista (Wired, WifiDetail, BtDetail, NetSpeed)
         font.weight:Typography.wStrong
         Accessible.role:Accessible.Heading; Accessible.name:text
     }

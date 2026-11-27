@@ -941,38 +941,21 @@ Surface {
                 spacing: 6 * root.s
                 visible: root.detailId.length === 0 && !root.panelOpen && !(root.agendaFresh && root.dayItems.length > 0)
 
-                Text {
+                // fase 3B (ADR-42): el estado vacío común (glifo, texto y qué hacer), cargando con su pulso
+                Empty {
                     width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
+                    maxWidth: parent.width
+                    s: root.s
+                    loading: !root.agendaFresh && Agenda.state !== "error" && Agenda.state !== "missing"
+                    glyph: Agenda.state === "error" || Agenda.state === "missing" || Agenda.issues.length > 0 ? "alert" : "calendar"
                     text: Agenda.state === "missing" ? "calcurse is not installed"
                         : Agenda.state === "error" ? "Could not load agenda"
                         : root.agendaFresh ? (Agenda.issues.length > 0 ? "Some events could not be loaded" : "No events")
                         : "Loading agenda…"
-                    color: Agenda.state === "error" ? Theme.errorColor : Theme.fgVariant
-                    font.family: Typography.ui
-                    font.pixelSize: Typography.label * root.s
-                }
-                Text {
-                    width: parent.width
-                    visible: Agenda.state === "error" || Agenda.state === "missing"
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: Agenda.state === "missing" ? "The month still works; install calcurse to see your events here."
-                                                     : Agenda.error
-                    color: Theme.outlineText
-                    font.family: Typography.ui
-                    font.pixelSize: Typography.caption * root.s
-                }
-                Text {
-                    width: parent.width
-                    visible: root.expanded && root.agendaFresh && Agenda.issues.length === 0 && Agenda.localWritable
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: "New event (N) adds one to this day"
-                    color: Theme.outlineText
-                    font.family: Typography.ui
-                    font.pixelSize: Typography.caption * root.s
+                    hint: Agenda.state === "missing" ? "The month still works; install calcurse to see your events here."
+                        : Agenda.state === "error" ? Agenda.error
+                        : root.expanded && root.agendaFresh && Agenda.issues.length === 0 && Agenda.localWritable
+                            ? "New event (N) adds one to this day" : ""
                 }
                 ActionButton {
                     anchors.horizontalCenter: parent.horizontalCenter

@@ -421,100 +421,47 @@ Surface {
                 font.pixelSize: Typography.caption * root.s
             }
             /** Abrir la última (L): sólo en reposo y si la hay. */
-            Item {
+            GlyphButton {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: ScreenRecorder.lastFile.length > 0 && !root.acting
-                width: 20 * root.s
-                height: 18 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Play the last recording (L)"
-                Accessible.onPressAction: ScreenRecorder.openLast()
-                Icon {
-                    anchors.centerIn: parent
-                    name: "play"
-                    size: 13 * root.s
-                    color: lastArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: lastArea
-                    anchors.fill: parent
-                    anchors.margins: -5 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: ScreenRecorder.openLast()
-                }
+                compact: true
+                s: root.s
+                glyph: "play"
+                label: "Play the last recording (L)"
+                onTriggered: ScreenRecorder.openLast()
+                glyphSize: 13
             }
             /** Copiarla al portapapeles como archivo (C), para pegarla en un chat o un gestor de archivos. */
-            Item {
+            GlyphButton {
                 id: copyButton
                 anchors.verticalCenter: parent.verticalCenter
                 visible: ScreenRecorder.canCopy && !root.acting
-                width: 20 * root.s
-                height: 18 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Copy the last recording (C)"
-                Accessible.onPressAction: ScreenRecorder.copyLast()
-                Icon {
-                    anchors.centerIn: parent
-                    name: "copy"
-                    size: 13 * root.s
-                    color: copyArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: copyArea
-                    anchors.fill: parent
-                    anchors.margins: -5 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: ScreenRecorder.copyLast()
-                }
+                compact: true
+                s: root.s
+                glyph: "copy"
+                label: "Copy the last recording (C)"
+                onTriggered: ScreenRecorder.copyLast()
+                glyphSize: 13
             }
             /** La carpeta de las grabaciones (O). */
-            Item {
+            GlyphButton {
                 anchors.verticalCenter: parent.verticalCenter
-                width: 20 * root.s
-                height: 18 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Open the recordings folder (O)"
-                Accessible.onPressAction: ScreenRecorder.openFolder()
-                Icon {
-                    anchors.centerIn: parent
-                    name: "folder-open"
-                    size: 13 * root.s
-                    color: folderArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: folderArea
-                    anchors.fill: parent
-                    anchors.margins: -5 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: ScreenRecorder.openFolder()
-                }
+                compact: true
+                s: root.s
+                glyph: "folder-open"
+                label: "Open the recordings folder (O)"
+                onTriggered: ScreenRecorder.openFolder()
+                glyphSize: 13
             }
             /** Settings → Screen recording («,»): formato, audio, carpeta, el HUD… */
-            Item {
+            GlyphButton {
                 id: settingsButton
                 anchors.verticalCenter: parent.verticalCenter
-                width: 20 * root.s
-                height: 18 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Recording settings (,)"
-                Accessible.onPressAction: root.openSettings()
-                Icon {
-                    anchors.centerIn: parent
-                    name: "cog"
-                    size: 12 * root.s
-                    color: cfgArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: cfgArea
-                    anchors.fill: parent
-                    anchors.margins: -5 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openSettings()
-                }
+                compact: true
+                s: root.s
+                glyph: "cog"
+                label: "Recording settings (,)"
+                onTriggered: root.openSettings()
             }
         }
     }
@@ -584,7 +531,7 @@ Surface {
                         width: chipLabel.implicitWidth + 12 * root.s
                         height: 24 * root.s
                         radius: Metrics.pill(height)
-                        opacity: opt.modelData.usable ? 1 : 0.45
+                        opacity: opt.modelData.usable ? 1 : Theme.disabledOpacity
                         color: Theme.controlBg("transparent", chipArea.containsMouse && opt.modelData.usable, chipArea.pressed && chipArea.containsMouse, chip.on)
                         border.width: root.zone === "options" && root.optionIndex === opt.index ? Metrics.focusWidth * root.s : 0
                         border.color: Theme.selBorder
@@ -751,7 +698,7 @@ Surface {
                         anchors.fill: parent
                         radius: face.radius
                         color: "transparent"
-                        border.width: card.isFocused ? 2 : 1
+                        border.width: card.isFocused ? Metrics.focusWidth * root.s : 1
                         border.color: card.isFocused && root.zone === "cards" ? card.accent : Theme.hair
                         opacity: card.busy ? 0.5 : 1
                         Behavior on border.color { ColorAnimation { duration: Motion.fast } }

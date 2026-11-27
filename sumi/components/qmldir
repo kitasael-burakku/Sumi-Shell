@@ -57,3 +57,5 @@ GlyphButton GlyphButton.qml
 NotifRow NotifRow.qml
 ControlSlider ControlSlider.qml
 PreviewCycle PreviewCycle.qml
+Tooltip Tooltip.qml
+FactRow FactRow.qml

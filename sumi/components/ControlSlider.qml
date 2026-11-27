@@ -33,7 +33,7 @@ Rectangle {
     color: Theme.controlBg(col.acc.container, hover.hovered && col.available, footArea.pressed && footArea.containsMouse, false, col.acc)
     border.width: col.focused ? Metrics.focusWidth : 1
     border.color: col.focused ? col.acc.ring : col.error.length > 0 ? Qt.alpha(Theme.dangerText, 0.6) : Theme.cardBorder
-    opacity: col.available ? 1 : 0.62
+    opacity: col.available ? 1 : Theme.disabledOpacity
     Behavior on color { ColorAnimation { duration: Motion.fast } }
 
     Accessible.ignored: true

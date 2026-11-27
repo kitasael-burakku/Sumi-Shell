@@ -356,7 +356,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             text: row.modelData.text
                             color: row.modelData.enabled ? Theme.fg : Theme.fgVariant
-                            opacity: row.modelData.enabled ? 1 : 0.45
+                            opacity: row.modelData.enabled ? 1 : Theme.disabledOpacity
                             font.family: Typography.ui
                             font.pixelSize: Typography.body * root.s
                             // El tope es una CONSTANTE, no el ancho del panel:

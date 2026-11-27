@@ -25,8 +25,8 @@ Rectangle {
     radius: Metrics.r(12) * root.s
     color: Theme.controlBg(Theme.tileBg, cardHover.hovered, false, false)
     Behavior on color { ColorAnimation { duration: Motion.fast } }
-    border.width: root.selected ? 2 * root.s : 1
-    border.color: root.selected ? Theme.primary : root.dataRow.warning ? Qt.alpha(Theme.warn, 0.55)
+    border.width: root.selected ? Metrics.focusWidth * root.s : 1
+    border.color: root.selected ? Theme.focusRing : root.dataRow.warning ? Qt.alpha(Theme.warn, 0.55)
         : cardHover.hovered ? Qt.alpha(Theme.primary, 0.45) : Theme.hair
     Behavior on border.color { ColorAnimation { duration: Motion.fast } }
     HoverHandler { id: cardHover }

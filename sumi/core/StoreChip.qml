@@ -47,7 +47,7 @@ Rectangle {
     border.width: 1
     border.color: chip.strong ? "transparent" : chip.on ? Qt.alpha(Theme.primary, 0.35)
         : area.containsMouse && !chip.disabled ? Qt.alpha(Theme.primary, 0.30) : Theme.hair
-    opacity: chip.disabled ? 0.45 : 1
+    opacity: chip.disabled ? Theme.disabledOpacity : 1
     // al pulsar se hunde un poco (2026-10-01: la tienda no daba respuesta al clic hasta que llegaba la página)
     scale: area.pressed && !chip.disabled && !Motion.off ? 0.95 : 1
     Behavior on color { ColorAnimation { duration: Motion.fast } }

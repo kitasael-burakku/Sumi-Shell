@@ -27,8 +27,8 @@ Rectangle {
     implicitHeight: Math.ceil(Math.max(copy.implicitHeight, dismiss.height) + 2 * row.verticalPad)
     radius: Metrics.rMd * row.s
     color: area.containsMouse ? Qt.alpha(Theme.primary, 0.08) : Theme.tileBg
-    border.width: row.focused ? Metrics.focusWidth : 1
-    border.color: row.focused ? Theme.primary : row.critical ? Qt.alpha(Theme.errorColor, 0.6) : Theme.glassBorder
+    border.width: row.focused ? Metrics.focusWidth * row.s : 1
+    border.color: row.focused ? Theme.focusRing : row.critical ? Qt.alpha(Theme.errorColor, 0.6) : Theme.glassBorder
     Behavior on color { ColorAnimation { duration: Motion.fast } }
 
     MouseArea {

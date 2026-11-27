@@ -85,7 +85,7 @@ Rectangle {
                     height: 26 * sheet.s
                     radius: Metrics.pill(width)
                     color: stepArea.containsMouse && stepBtn.can ? Theme.hoverBg : "transparent"
-                    opacity: stepBtn.can ? 1 : 0.35
+                    opacity: stepBtn.can ? 1 : Theme.disabledOpacity
                     Accessible.role: Accessible.Button
                     Accessible.name: stepBtn.modelData.name
                     Icon {

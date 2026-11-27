@@ -4,6 +4,7 @@ import QtQuick
 import "../theme"
 import "../services"
 import "../components"
+import "../lib/accent-zones.js" as Zones
 
 /**
  * Superficie de bluetooth (Fase 9.f.3).
@@ -42,6 +43,12 @@ import "../components"
  */
 Surface {
     id: root
+    /**
+     * Fase 3D (ADR-42): Bluetooth en su familia de color en todas partes (`lib/accent-zones.js`: secondary), como su
+     * tarjeta del Control Center; antes este panel lo pintaba con primary a mano.
+     */
+    palette.accent: Theme.zone(Zones.of("bluetooth"))
+    readonly property var acc: Theme.fam(palette.accent)
 
     mTop: 12
     mLeft: 14
@@ -342,7 +349,7 @@ Surface {
                 // propio; hover = fondo tenue (futurebluetooth: selección ≠ conexión).
                 color: row.sel ? Theme.selBg
                      : rowArea.containsMouse ? Theme.hoverBg
-                     : (!row.isScan && row.dev.connected) ? Qt.alpha(Theme.primary, 0.08)
+                     : (!row.isScan && row.dev.connected) ? Qt.alpha(root.acc.base, 0.08)
                      : row.isScan ? Qt.alpha(Theme.fg, 0.04)
                      : "transparent"
                 /** Estado discreto (la seleccion), no geometria: ADR-25 lo deja. */
@@ -355,7 +362,7 @@ Surface {
                 width: 2 * root.s
                 height: parent.height * 0.50
                 radius: Metrics.pill(width)
-                color: Theme.primary
+                color: root.acc.accent
             }
 
             Rectangle {
@@ -380,8 +387,8 @@ Surface {
                 }
                 onPulsingChanged: if (!pulsing) opacity = 1
                 color: row.isScan
-                        ? (Bt.scanWanted ? Theme.primary : Theme.fgVariant)
-                        : row.dev.connected ? Theme.primary
+                        ? (Bt.scanWanted ? root.acc.accent : Theme.fgVariant)
+                        : row.dev.connected ? root.acc.accent
                         : row.dev.blocked ? Theme.errorColor : Theme.fgVariant
             }
 
@@ -434,8 +441,8 @@ Surface {
                 }
                 color: (row.here && (Bt.phase === "failed" || Bt.phase === "timeout")) ? Theme.errorColor
                      : (!row.isScan && row.dev.blocked) ? Theme.errorColor
-                     : (!row.isScan && row.dev.connected) ? Theme.primary
-                     : (row.isScan && Bt.scanWanted) ? Theme.primary
+                     : (!row.isScan && row.dev.connected) ? root.acc.accent
+                     : (row.isScan && Bt.scanWanted) ? root.acc.accent
                      : Theme.outline
                 font.family: Typography.ui
                 font.pixelSize: Typography.caption * root.s

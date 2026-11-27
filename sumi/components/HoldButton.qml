@@ -145,9 +145,10 @@ Item {
         anchors.fill: parent
         radius: Metrics.pill(width)
         color: Theme.controlBg(Theme.tileBg, root.hovered && root.enabled, root.holding || root.keyHolding, false, root.acc)
-        border.width: root.activeFocus ? 1 : 0
+        // fase 3A (ADR-42): el grosor de foco de toda la shell
+        border.width: root.activeFocus ? Metrics.focusWidth * root.s : 0
         border.color: root.acc.ring
-        opacity: root.enabled ? 1 : 0.45
+        opacity: root.enabled ? 1 : Theme.disabledOpacity
     }
 
     /** El relleno: un disco que crece desde el centro con el progreso. */
@@ -168,7 +169,7 @@ Item {
         name: root.glyph
         size: Math.round(root.diameter * 0.47) * root.s
         color: root.fill > 0 ? root.toneColor : Theme.fgVariant
-        opacity: root.enabled ? 1 : 0.45
+        opacity: root.enabled ? 1 : Theme.disabledOpacity
     }
 
     MouseArea {

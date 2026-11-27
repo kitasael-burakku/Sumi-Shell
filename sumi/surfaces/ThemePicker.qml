@@ -331,28 +331,14 @@ Surface {
                 }
             }
 
-            Item {
+            GlyphButton {
                 id: cfgBtn
                 anchors.verticalCenter: parent.verticalCenter
-                width: 18 * root.s
-                height: 18 * root.s
-                Accessible.role: Accessible.Button
-                Accessible.name: "Colour settings (S)"
-                Accessible.onPressAction: if (root.host) root.host.openSettingsAt("theme/colors")
-                Icon {
-                    anchors.centerIn: parent
-                    name: "cog"
-                    size: 12 * root.s
-                    color: cfgArea.containsMouse ? Theme.fg : Theme.fgVariant
-                }
-                MouseArea {
-                    id: cfgArea
-                    anchors.fill: parent
-                    anchors.margins: -6 * root.s
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: if (root.host) root.host.openSettingsAt("theme/colors")
-                }
+                compact: true
+                s: root.s
+                glyph: "cog"
+                label: "Colour settings (S)"
+                onTriggered: if (root.host) root.host.openSettingsAt("theme/colors")
             }
         }
     }

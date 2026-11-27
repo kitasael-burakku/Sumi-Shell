@@ -855,7 +855,7 @@ Surface {
                                         anchors.fill: parent
                                         radius: Metrics.r(7) * root.s
                                         color: isRow.sel ? Theme.selBg : "transparent"
-                                        border.width: isRow.sel ? 1 : 0
+                                        border.width: isRow.sel ? Metrics.focusWidth * root.s : 0
                                         border.color: Theme.selBorder
                                     }
                                     Item {
@@ -924,7 +924,7 @@ Surface {
                                     anchors.fill: parent
                                     radius: Metrics.r(6) * root.s
                                     color: moreRow.sel ? Theme.selBg : "transparent"
-                                    border.width: moreRow.sel ? 1 : 0
+                                    border.width: moreRow.sel ? Metrics.focusWidth * root.s : 0
                                     border.color: Theme.selBorder
                                 }
                                 Row {
@@ -1118,7 +1118,7 @@ Surface {
                                     anchors.fill: parent
                                     radius: Metrics.r(6) * root.s
                                     color: dnRow.sel ? Theme.selBg : dnArea.containsMouse ? Theme.hoverBg : "transparent"
-                                    border.width: dnRow.sel ? 1 : 0
+                                    border.width: dnRow.sel ? Metrics.focusWidth * root.s : 0
                                     border.color: Theme.selBorder
                                 }
                                 Row {
@@ -1190,7 +1190,7 @@ Surface {
                             anchors.fill: parent
                             radius: Metrics.r(7) * root.s
                             color: acLine.sel ? Theme.selBg : "transparent"
-                            border.width: acLine.sel ? 1 : 0
+                            border.width: acLine.sel ? Metrics.focusWidth * root.s : 0
                             border.color: Theme.selBorder
                         }
                         Item {

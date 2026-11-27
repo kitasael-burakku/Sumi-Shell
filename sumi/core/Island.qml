@@ -185,6 +185,8 @@ Morph {
     property bool osdOff: false
     property string osdGlyph: "volume-high"
     property string osdKind: "volume"
+    /** Fase 3D (ADR-42): el color del significado (`lib/accent-zones.js`), como en el Control Center: brillo tertiary. */
+    readonly property color osdAccent: island.osdKind === "brightness" ? Theme.famTertiary.fill : Theme.primary
     /** "none" · "level" (volumen) · "notice" (algo que contar). */
     property string osdMode: "none"
     property string noticeText: ""
@@ -954,8 +956,8 @@ Morph {
             radius: Metrics.r(7) * island.s
             visible: btn.navFocused
             color: Theme.selBg
-            border.width: 1
-            border.color: Theme.selBorder
+            border.width: Metrics.focusWidth * island.s
+            border.color: Theme.focusRing
         }
 
         Row {
@@ -1393,28 +1395,19 @@ Morph {
             font.features: { "tnum": 1 }
         }
 
-        Rectangle {
+        ProgressTrack {
             anchors.left: osdGlyph.right
             anchors.leftMargin: Metrics.sp3 * island.s
             anchors.right: osdPct.left
             anchors.rightMargin: Metrics.sp3 * island.s
             anchors.verticalCenter: parent.verticalCenter
             height: 4 * island.s
-            radius: Metrics.pill(height)
-            color: Qt.alpha(Theme.fg, 0.13)
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                /** La fracción lleva la animación; el píxel sigue al carril (ADR-25). */
-                width: parent.width * shown
-                radius: parent.radius
-                color: island.osdOff ? Theme.outline : Theme.primary
-                property real shown: Math.max(0, Math.min(1, island.osdLevel))
-                Behavior on shown { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic } }
-                Behavior on color { ColorAnimation { duration: Motion.fast } }
-            }
+            // fase 3C (ADR-42): la pista común, que en Terminal se dibuja en celdas; la fracción lleva la animación
+            s: island.s
+            trackColor: Qt.alpha(Theme.fg, 0.13)
+            tint: island.osdOff ? Theme.outline : island.osdAccent
+            value: island.osdLevel
+            Behavior on value { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic } }
         }
     }
 
@@ -1762,8 +1755,8 @@ Morph {
                     radius: Metrics.rXs * island.s
                     visible: btBtn.navFocused
                     color: Theme.selBg
-                    border.width: 1
-                    border.color: Theme.selBorder
+                    border.width: Metrics.focusWidth * island.s
+                    border.color: Theme.focusRing
                 }
 
                 Aviso {
@@ -1807,8 +1800,8 @@ Morph {
                     radius: Metrics.rXs * island.s
                     visible: netBtn.navFocused
                     color: Theme.selBg
-                    border.width: 1
-                    border.color: Theme.selBorder
+                    border.width: Metrics.focusWidth * island.s
+                    border.color: Theme.focusRing
                 }
 
                 Aviso {
@@ -2105,7 +2098,7 @@ Morph {
             font.weight: Typography.wStrong
             font.features: { "tnum": 1 }
         }
-        Rectangle {
+        ProgressTrack {
             anchors.left: bandGlyph.right
             anchors.leftMargin: 10 * island.s
             anchors.right: bandPct.left
@@ -2113,15 +2106,12 @@ Morph {
             anchors.verticalCenter: parent.verticalCenter
             visible: !island.bandVertical && island.bandKind === "level"
             height: 4 * island.s
-            radius: Metrics.pill(height)
-            color: Qt.alpha(Theme.fg, 0.13)
-            Rectangle {
-                height: parent.height
-                radius: parent.radius
-                width: parent.width * Math.max(0, Math.min(1, island.osdLevel))
-                color: island.osdOff ? Theme.outline : Theme.primary
-                Behavior on width { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic } }
-            }
+            // fase 3C (ADR-42): la pista común (celdas en Terminal)
+            s: island.s
+            trackColor: Qt.alpha(Theme.fg, 0.13)
+            tint: island.osdOff ? Theme.outline : island.osdAccent
+            value: island.osdLevel
+            Behavior on value { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic } }
         }
         Text {
             anchors.left: bandGlyph.right
@@ -2176,7 +2166,7 @@ Morph {
                 width: parent.width
                 radius: parent.radius
                 height: parent.height * Math.max(0, Math.min(1, island.osdLevel))
-                color: island.osdOff ? Theme.outline : Theme.primary
+                color: island.osdOff ? Theme.outline : island.osdAccent
                 Behavior on height { NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic } }
             }
         }

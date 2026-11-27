@@ -4,6 +4,7 @@ import QtQuick
 import "../theme"
 import "../services"
 import "../components"
+import "../lib/accent-zones.js" as Zones
 
 /**
  * Ficha de un dispositivo bluetooth (Fase 9.f.3).
@@ -32,6 +33,12 @@ import "../components"
  */
 Surface {
     id: root
+    /**
+     * Fase 3D (ADR-42): Bluetooth en su familia de color en todas partes (`lib/accent-zones.js`: secondary), como su
+     * tarjeta del Control Center; antes este panel lo pintaba con primary a mano.
+     */
+    palette.accent: Theme.zone(Zones.of("bluetooth"))
+    readonly property var acc: Theme.fam(palette.accent)
 
     mTop: 12
     mLeft: 14
@@ -184,7 +191,7 @@ Surface {
 
     readonly property color stateColor: (root.phase === "failed" || root.phase === "timeout"
                                          || root.devBlocked) ? Theme.errorColor
-        : root.connected ? Theme.primary : Theme.outline
+        : root.connected ? root.acc.accent : Theme.outline
 
     readonly property bool messageIsError:
         // La pregunta no es un error: es una pregunta. Se pinta en tono normal
@@ -279,35 +286,8 @@ Surface {
     implicitHeight: col.implicitHeight
 
     /** Una fila de la ficha: etiqueta a la izquierda, valor a la derecha. */
-    component Fact: Item {
-        property string label: ""
-        property string value: ""
-        height: Math.max(26 * root.s, factLabel.implicitHeight, factValue.implicitHeight)
-
-        Text {
-            id: factLabel
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: parent.label
-            color: Theme.outlineText
-            font.family: Typography.ui
-            font.pixelSize: Typography.label * root.s
-        }
-        Text {
-            id: factValue
-            anchors.left: factLabel.right
-            anchors.leftMargin: 12 * root.s
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideMiddle
-            text: parent.value.length > 0 ? parent.value : "—"
-            color: parent.value.length > 0 ? Theme.fg : Theme.outlineText
-            font.family: Typography.ui
-            font.pixelSize: Typography.body * root.s
-            font.features: ({ "tnum": 1 })
-        }
-    }
+    /** La fila de ficha común (`components/FactRow`, fase 3B, ADR-42). */
+    component Fact: FactRow { s: root.s }
 
     function revealItem(item) {
         if (!root.open || !item) return;
@@ -408,7 +388,7 @@ Surface {
                     anchors.verticalCenter: parent.verticalCenter
                     name: Bt.deviceGlyph(root.dev)
                     size: 12 * root.s
-                    color: root.connected ? Theme.primary : Theme.fgVariant
+                    color: root.connected ? root.acc.accent : Theme.fgVariant
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter

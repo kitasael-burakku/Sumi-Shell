@@ -32,7 +32,7 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         visible: empty.glyph.length > 0
         name: empty.glyph
-        size: 20 * empty.s
+        size: Metrics.glyphLg * empty.s
         color: Theme.outline
         opacity: 0.7
 
@@ -40,8 +40,9 @@ Column {
         SequentialAnimation on opacity {
             running: empty.loading && !Motion.still
             loops: Animation.Infinite
-            NumberAnimation { to: 0.28; duration: 700; easing.type: Easing.InOutSine }
-            NumberAnimation { to: 0.70; duration: 700; easing.type: Easing.InOutSine }
+            // con la velocidad elegida (fase 3B; antes 700 ms fijos)
+            NumberAnimation { to: 0.28; duration: Motion.dur(700); easing.type: Easing.InOutSine }
+            NumberAnimation { to: 0.70; duration: Motion.dur(700); easing.type: Easing.InOutSine }
         }
     }
 

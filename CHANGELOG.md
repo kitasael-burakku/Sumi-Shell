@@ -43,6 +43,17 @@ any MINOR release; every such change is listed here with what to do about it.
 - The hover face of the capsule and Edge works like the Dynamic Bar's status capsule: clicking the network or
   Bluetooth icon opens the Control Center, right-click opens Wi-Fi or Bluetooth. The hover face's time opens
   Calendar and its battery opens the battery settings, as in the bar.
+- One tooltip for the whole shell (`components/Tooltip.qml`): opaque, after 400 ms with the pointer and at once with
+  the keyboard, in the hover face, the Dynamic Bar and on glyph buttons (which now show their name). The keyboard
+  focus ring has one width and colour everywhere (twice as thick over images).
+- Empty areas use the shared empty state (the Calendar agenda, the Mixer with nothing playing); detail sheets share
+  one label/value row (`components/FactRow.qml`), so the wired one no longer clips with a large text size and long
+  service values are elided. Sub-view titles share one size.
+- Small footer and header buttons (Recorder, the Wallpaper, Theme and Mixer settings) get the shared hover, focus,
+  tooltip and Terminal frame. The capsule's volume and brightness OSD bars are drawn in cells in Terminal. Disabled
+  controls share one opacity.
+- Bluetooth lists and details use its colour family (as its Control Center tile), and the brightness OSD uses the
+  brightness colour.
 - Keyboard in the hover face and the Dynamic Bar uses the same keys: → ↓ Tab move on, ← ↑ Shift+Tab move back,
   Home/End, Return or Space activate, and Shift+Return or the Menu key do what right-click does.
 - Middle click plays or pauses in the Dynamic Bar and Bar-Edge too (the same «Middle click» setting as the capsule);

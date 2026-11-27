@@ -167,8 +167,8 @@ Surface {
         height: 60 * root.s
         radius: Metrics.r(12) * root.s
         color: Theme.controlBg(Theme.tileBg, exArea.containsMouse, exArea.pressed && exArea.containsMouse, false)
-        border.width: ex.focused ? 2 * root.s : 1
-        border.color: ex.focused ? Theme.primary : exArea.containsMouse ? Qt.alpha(Theme.primary, 0.45) : Theme.hair
+        border.width: ex.focused ? Metrics.focusWidth * root.s : 1
+        border.color: ex.focused ? Theme.focusRing : exArea.containsMouse ? Qt.alpha(Theme.primary, 0.45) : Theme.hair
         scale: exArea.pressed && !Motion.still ? 0.98 : 1
         Behavior on color { ColorAnimation { duration: Motion.fast } }
         Behavior on border.color { ColorAnimation { duration: Motion.fast } }
