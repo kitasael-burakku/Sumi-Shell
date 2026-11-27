@@ -3,8 +3,10 @@ h=pathlib.Path.home();source=pathlib.Path(__file__).resolve().parents[2]/'sumi';
 for name in ['services','scripts','runtime','fake','lib']:(root/name).mkdir(parents=True,exist_ok=True)
 (root/'runtime').chmod(0o700)
 spec=importlib.util.spec_from_file_location('fixtures',pathlib.Path(__file__).with_name('test-collector.py'));fx=importlib.util.module_from_spec(spec);spec.loader.exec_module(fx);fx.fixture(root/'fake')
-shutil.copy2(source/'services/Sysmon.qml',root/'services/Sysmon.qml');shutil.copy2(source/'lib/monitor-alerts.js',root/'lib/monitor-alerts.js');shutil.copy2(source/'scripts/sysmon-collect.py',root/'scripts/sysmon-collect.py')
-(root/'services/qmldir').write_text('singleton Sysmon Sysmon.qml\nsingleton Session Session.qml\nsingleton Units Units.qml\n')
+shutil.copy2(source/'services/Sysmon.qml',root/'services/Sysmon.qml');shutil.copy2(source/'lib/monitor-alerts.js',root/'lib/monitor-alerts.js');shutil.copy2(source/'lib/monitor.js',root/'lib/monitor.js');shutil.copy2(source/'scripts/sysmon-collect.py',root/'scripts/sysmon-collect.py')
+(root/'services/qmldir').write_text('singleton Sysmon Sysmon.qml\nsingleton Session Session.qml\nsingleton Units Units.qml\nsingleton Settings Settings.qml\n')
+# F11 (2026-11-27): Sysmon lee la unidad de temperatura del usuario
+(root/'services/Settings.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject { property string weatherUnits: "celsius" }\n')
 (root/'services/Session.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject { property bool idle: false }\n')
 (root/'services/Units.qml').write_text('pragma Singleton\nimport QtQuick\nQtObject { property int failedTotal: 0; function claim(w,v) {} function refreshFailed() {} }\n')
 (root/'shell.qml').write_text('''import Quickshell

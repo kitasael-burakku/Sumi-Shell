@@ -250,7 +250,7 @@ PanelWindow {
         const n = win.selected;
         if (n === "keybinds") return "This is the window you're in";
         if (n === "keepAwake") return "Keep awake is " + (Session.keepAwake ? "on" : "off");
-        if (n === "barToggle") {
+        if (n === "barToggle" || n === "dockToggle") {
             // nombres públicos (2026-11-24); los valores guardados siguen siendo `bar`/`island` y `dock`
             const bar = Settings.monitorPref(win.targetScreen, "presentation", "island") === "bar";
             const edge = Settings.monitorPref(win.targetScreen, "dock", false) === true;

@@ -388,6 +388,13 @@ Singleton {
         return sc.toggleBar();
     }
 
+    /** F8 (2026-11-27): Edge en el monitor enfocado; antes sólo por IPC (`dockToggle`). */
+    function dockToggleOn(mon, who) {
+        const sc = root.resolve(mon);
+        if (!sc) { console.warn(who, "dockToggle: no screen for", mon); return false; }
+        return sc.toggleDock();
+    }
+
     function peekOn(mon, who) {
         const sc = root.resolve(mon);
         if (!sc) { console.warn(who, "peek: no screen for", mon); return false; }
@@ -414,6 +421,7 @@ Singleton {
         case "services": return Units.supported === false ? false : root.toggleSurfaceOn("services", mon, who);
         case "peek": return root.peekOn(mon, who);
         case "barToggle": return root.barToggleOn(mon, who);
+        case "dockToggle": return root.dockToggleOn(mon, who);
         case "keybinds": return root.keybindsOn(mon, who);
         case "keepAwake": Session.toggleKeepAwake(); return true;
         case "wallRandom": {

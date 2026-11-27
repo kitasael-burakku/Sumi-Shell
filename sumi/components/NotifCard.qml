@@ -517,13 +517,7 @@ Item {
 
     // --- para el anfitrión ----------------------------------------------------------
 
-    function ago(t) {
-        const d = Math.max(0, card.now - t) / 1000;
-        if (d < 60) return "now";
-        if (d < 3600) return Math.floor(d / 60) + "m";
-        if (d < 86400) return Math.floor(d / 3600) + "h";
-        return Math.floor(d / 86400) + "d";
-    }
+    function ago(t) { return Clock.ago(t, "compact", card.now); }
 
     /** Abre el campo con el borrador guardado, si lo hay, y le da el foco. */
     function focusReply() {

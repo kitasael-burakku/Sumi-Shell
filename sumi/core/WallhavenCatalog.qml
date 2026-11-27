@@ -714,7 +714,7 @@ Item {
                 loops: Animation.Infinite
                 from: -progress.width
                 to: area.width
-                duration: 1100
+                duration: Motion.dur(1100)
                 easing.type: Easing.InOutQuad
             }
         }

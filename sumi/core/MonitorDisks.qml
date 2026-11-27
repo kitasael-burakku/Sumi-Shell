@@ -45,7 +45,7 @@ Flickable {
                 MonitorHeading {
                     s: root.s
                     text: disk.modelData.devices.join(" + ")
-                    aside: (disk.ioRows.length === 1 ? "" : "Temperature " + Monitor.number(disk.modelData.temperatureC, " °C") + "  ·  ")
+                    aside: (disk.ioRows.length === 1 ? "" : "Temperature " + Monitor.tempText(disk.modelData.temperatureC, Sysmon.tempUnits) + "  ·  ")
                         + "health not checked (no SMART)"
                 }
                 Grid {
@@ -63,7 +63,7 @@ Flickable {
                             {label: "Read", value: Monitor.bytes(disk.ioRows[0].readBps, true), sub: disk.ioRows[0].device},
                             {label: "Write", value: Monitor.bytes(disk.ioRows[0].writeBps, true), sub: disk.ioRows[0].device},
                             {label: "Busy", value: Monitor.number(disk.ioRows[0].busyPct, "%"), sub: "Time with I/O in flight"},
-                            {label: "Temperature", value: Monitor.number(disk.modelData.temperatureC, " °C"), sub: "Drive sensor"}
+                            {label: "Temperature", value: Monitor.tempText(disk.modelData.temperatureC, Sysmon.tempUnits), sub: "Drive sensor"}
                         ] : []
                         MonitorStat {
                             required property var modelData

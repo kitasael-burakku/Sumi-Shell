@@ -221,7 +221,7 @@ PanelWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         id: statusLabel
                         width: parent.width - 13 * win.s; elide: Text.ElideRight
-                        text: MonitorUi.paused ? "Paused · " + Qt.formatDateTime(new Date(MonitorUi.current.at), "hh:mm:ss")
+                        text: MonitorUi.paused ? "Paused · " + Clock.fmt(MonitorUi.current.at, true)
                               : Sysmon.error ? Sysmon.error : MonitorUi.current ? "Live" : "Starting…"
                         color: MonitorUi.paused ? Theme.warn : Sysmon.error ? Theme.errorColor : Theme.primary
                         font.family: Typography.mono; font.pixelSize: Typography.label * win.s; font.weight: Typography.wStrong
@@ -456,7 +456,7 @@ PanelWindow {
                 const c = MonitorUi.current;
                 if (!c) return Sysmon.error || "Waiting for the first sample…";
                 const crit = MonitorUi.alerts.filter(a => a.level === "critical").length, warn = MonitorUi.alerts.length - crit;
-                return (MonitorUi.paused ? "Paused at " : "Updated ") + Qt.formatDateTime(new Date(c.at), "hh:mm:ss")
+                return (MonitorUi.paused ? "Paused at " : "Updated ") + Clock.fmt(c.at, true)
                     + "  ·  " + (crit ? crit + " critical" + (warn ? ", " + warn + " warnings" : "") : warn ? warn + (warn === 1 ? " warning" : " warnings") : "No anomalies")
                     + (MonitorUi.warmingUp ? "  ·  " + MonitorUi.ranges.find(r => r.id === MonitorUi.range).label + " window filling (" + Monitor.duration(MonitorUi.coveredMs / 1000) + " so far; history starts when a monitor view opens)" : "")
                     + (MonitorUi.paused ? "  ·  sampling continues in the background" : "");

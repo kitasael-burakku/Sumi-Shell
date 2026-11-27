@@ -129,7 +129,8 @@ Item {
         target: root
         property: "fill"
         to: 0
-        duration: 180
+        // ADR-42: con la velocidad elegida; Off, de golpe
+        duration: Motion.off ? 0 : Motion.dur(180)
         easing.type: Easing.OutCubic
     }
 

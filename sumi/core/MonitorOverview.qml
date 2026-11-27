@@ -85,7 +85,7 @@ Flickable {
                 width: stats.cell; s: root.s; link: true; onActivated: MonitorUi.section = "cpu"
                 palette.accent: Theme.zone(Zones.of("cpu"))
                 label: "CPU"; value: Monitor.cpuUsage(root.cur)
-                sub: Monitor.number(root.cpu.temperatureC, " °C") + "  ·  " + Monitor.freq(root.cpu.frequencyMHz)
+                sub: Monitor.tempText(root.cpu.temperatureC, Sysmon.tempUnits) + "  ·  " + Monitor.freq(root.cpu.frequencyMHz)
                 warning: MonitorUi.alerts.some(a => a.id === "temp:cpu.temp")
             }
             MonitorStat {
@@ -93,7 +93,7 @@ Flickable {
                 palette.accent: Theme.zone(Zones.of("gpu"))
                 label: root.cur && root.cur.gpus && root.cur.gpus.length > 1 ? "GPU · " + root.gpu.card + " (+" + (root.cur.gpus.length - 1) + ")" : "GPU"
                 value: root.gpu ? Monitor.number(root.gpu.usagePct, "%") : "None"
-                sub: root.gpu ? Monitor.number(root.gpu.temperatureC, " °C") + "  ·  VRAM " + Monitor.bytes(root.gpu.vramUsedB) : "No GPU detected"
+                sub: root.gpu ? Monitor.tempText(root.gpu.temperatureC, Sysmon.tempUnits) + "  ·  VRAM " + Monitor.bytes(root.gpu.vramUsedB) : "No GPU detected"
                 warning: !!root.gpu && MonitorUi.alerts.some(a => a.id === "temp:gpu/" + root.gpu.id + "/temp")
             }
             MonitorStat {

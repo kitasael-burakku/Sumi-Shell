@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
 import "../lib/battery-alerts.js" as Alerts
+import "../theme"
 
 /** Batería agregada de UPower y avisos globales por umbral. Sin batería de
  * laptop (incluido un escritorio con UPS) no muestra indicadores ni avisa.
@@ -36,6 +37,21 @@ Singleton {
     readonly property string description: !present ? "No battery" : percent + "% · " + stateLabel
         + (externalPower && !charging && !full && !discharging ? " · Plugged in" : "")
         + (timeText ? " · " + timeText + (charging ? " until full" : " remaining") : "")
+
+    /*
+     * Cómo se dibuja la batería, en un solo sitio (ADR-42): la barra, el Control Center y la oreja del Edge tenían cada
+     * uno su copia del glifo y del color. Glifo por décimas; baja y descargando, el de alarma.
+     * `plugged` elige el rayo: la barra y el Control Center lo ponen al cargar (`charging`); la oreja del cargador, al
+     * enchufar (`externalPower`), que es lo que anuncia.
+     */
+    function glyphFor(plugged) {
+        if (root.low && !plugged) return "battery-alert";
+        const tenth = root.percent < 5 ? 0 : Math.min(100, Math.round(root.percent / 10) * 10);
+        return (plugged ? "battery-charging-" : "battery-") + tenth;
+    }
+    readonly property string glyph: root.glyphFor(root.charging)
+    /** Baja → peligro; con corriente (cargando o llena enchufada) → acento; si no, el texto secundario. */
+    readonly property color ink: root.low ? Theme.danger : root.externalPower ? Theme.primary : Theme.fgVariant
 
     // Uno por shell, no por pantalla. El servidor actual decide DND, fullscreen e historial.
     // Sin servidor propio no competimos con el gestor de energía de otro escritorio.

@@ -1715,10 +1715,16 @@ Scope {
                 y: focusScope.sideMid - height / 2
                 sizeFactor: focusScope.sideFactor
                 z: focusScope.sideZ
-                shown: focusScope.sidesShown && Settings.islandNetCircle
-                label: netCircle.face.label
-                halo: netCircle.face.color
-                onActivated: screen.toggleFromCircle("controlCenter")
+                shown: focusScope.sidesShown && (Settings.islandNetCircle || netCircle.speed)
+                label: netCircle.speed ? "Speed test · " + (isFinite(SpeedTest.liveMbps) ? Math.round(SpeedTest.liveMbps) + " Mb/s" : "measuring")
+                                       : netCircle.face.label
+                halo: netCircle.speed ? Theme.primary : netCircle.face.color
+                onActivated: screen.toggleFromCircle(netCircle.speed ? "speedtest" : "controlCenter")
+                /**
+                 * F5 (2026-11-27): mientras corre un speed test, el círculo de red lo enseña (cohete o subida) y abre
+                 * su vista; con el círculo apagado, aparece sólo mientras dura. En el Edge lo dice su oreja (ADR-37).
+                 */
+                readonly property bool speed: SpeedTest.busy && island.earLive !== "speed"
                 SpringValue {
                     id: netConceal
                     target: (screen.concealed || screen.hidden) ? focusScope.sideHide(netCircle) : 0
@@ -1733,10 +1739,11 @@ Scope {
 
                 Icon {
                     anchors.centerIn: parent
-                    name: netCircle.face.glyph
+                    name: netCircle.speed ? (SpeedTest.phase === "upload" ? "upload" : "rocket") : netCircle.face.glyph
                     size: 15 * screen.s * netCircle.sizeFactor
                     // neutro: el glifo legible, el halo apagado
-                    color: netCircle.face.tone === "unknown" ? Theme.fgVariant : netCircle.face.color
+                    color: netCircle.speed ? Theme.primary
+                        : netCircle.face.tone === "unknown" ? Theme.fgVariant : netCircle.face.color
                     Behavior on color { ColorAnimation { duration: Motion.standard } }
                 }
             }

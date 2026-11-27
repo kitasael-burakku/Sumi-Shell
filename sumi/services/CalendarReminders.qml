@@ -56,8 +56,49 @@ Singleton {
     function iso(ms) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z"); }
     function key(d) { return d.uuid + "|" + d.rid + "|" + d.offset; }
 
+    /*
+     * F10 (2026-11-27, ADR-42): el próximo evento para el tooltip del reloj (barra y cara hover). Los recordatorios
+     * sólo traen eventos con aviso, así que se pide el `range` de hoy y mañana al mismo almacén, con la misma cadencia
+     * que la caché (cambios, vuelta de suspensión, cada 6 h) y al cambiar de día. Un proceso por lectura, no por minuto.
+     */
+    property var upcoming: []
+    function refreshUpcoming() {
+        const d = new Date(root.now());
+        const day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        CalendarStore.submit({ op: "range", from: day, days: 2 }, function (r) {
+            if (r && r.ok) root.upcoming = (r.items || []).filter(it => !it.allDay && /^\d{1,2}:\d{2}$/.test(it.start || ""));
+        });
+    }
+    Connections { target: Clock; function onDateChanged() { root.refreshUpcoming(); } }
+    /** { title, at (ms), end (ms), now (bool) } del evento en curso o el siguiente de hoy y mañana; null si no hay. */
+    readonly property var nextEvent: {
+        const n = Clock.now.getTime();
+        const ms = (date, hm) => { const p = date.split("-"), h = hm.split(":");
+            return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), Number(h[0]), Number(h[1])).getTime(); };
+        let best = null;
+        // por índice: una lista que llega de otro contexto (IPC, el almacén) puede ser una secuencia de Qt sin iterador
+        const list = root.upcoming || [];
+        for (let i = 0; i < list.length; i++) {
+            const it = list[i];
+            const at = ms(it.date, it.start);
+            const end = /^\d{1,2}:\d{2}$/.test(it.end || "") ? ms(it.date, it.end) : at;
+            if (end <= n && at <= n) continue;
+            if (!best || at < best.at) best = { title: it.title || it.message || "Event", at: at, end: end, now: at <= n };
+        }
+        return best;
+    }
+    /** «Design review at 10:30» · «Now: Design review until 11:00» · «Tomorrow: Standup at 9:00»; "" sin evento. */
+    readonly property string nextText: {
+        const e = root.nextEvent;
+        if (!e) return "";
+        if (e.now) return "Now: " + e.title + " until " + Clock.fmt(e.end);
+        const tomorrow = new Date(e.at).getDate() !== Clock.now.getDate();
+        return (tomorrow ? "Tomorrow: " : "") + e.title + " at " + Clock.fmt(e.at);
+    }
+
     function refresh() {
         if (root.fetching) { root.fetchAgain = true; return; }
+        root.refreshUpcoming();
         const n = root.now();
         root.fetching = true;
         CalendarStore.submit({ op: "due", from: root.iso(n - 48 * root.hour), to: root.iso(n + 26 * root.hour) }, function (r) {
@@ -124,7 +165,7 @@ Singleton {
     }
 
     function clock(ms) {
-        return Qt.formatTime(new Date(ms), Settings.clockFormat === "12h" ? "h:mm AP" : "HH:mm");
+        return Clock.fmt(ms);
     }
     function when(d) {
         const n = root.now(), s = Date.parse(d.start);

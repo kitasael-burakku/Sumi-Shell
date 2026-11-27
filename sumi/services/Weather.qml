@@ -230,16 +230,17 @@ Singleton {
 
     function temp(v) { return v === null || v === undefined ? "—" : Math.round(v) + "°"; }
     readonly property string unitLabel: root.units === "fahrenheit" ? "°F" : "°C"
+    /**
+     * F10 (2026-11-27): la temperatura de ahora en corto («18°») para junto a la fecha de la barra y de la cara hover;
+     * "" sin tiempo activado o sin datos. Quien la dibuja reclama el servicio mientras se ve.
+     */
+    readonly property string shortTemp: root.enabled && root.hasData && root.data.current
+        && typeof root.data.current.temp === "number" ? root.temp(root.data.current.temp) : ""
 
     /** «Updated 12 min ago» / «2 h ago»: la antigüedad dicha en claro. */
     function ageText() {
         if (!root.hasData) return "";
-        const m = Math.round(root.ageMs / 60000);
-        if (m < 1) return "just now";
-        if (m < 60) return m + " min ago";
-        const h = Math.round(m / 60);
-        if (h < 48) return h + " h ago";
-        return Math.round(h / 24) + " d ago";
+        return Clock.ago(root.data.fetchedAt, "long", root.now);
     }
 
     /** Código WMO → texto y glifo (`components/Icon`). */

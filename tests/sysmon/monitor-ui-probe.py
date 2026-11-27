@@ -14,7 +14,7 @@ def stub(folder,name,body):
  (root/folder/(name+'.qml')).write_text('pragma Singleton\nimport QtQuick\nQtObject { '+body+' }\n')
  with (root/folder/'qmldir').open('a') as f:f.write('singleton '+name+' '+name+'.qml\n')
 stub('services','Session','property bool idle: false')
-stub('services','Settings','property real textScale: 1')
+stub('services','Settings','property real textScale: 1; property string weatherUnits: "celsius"')
 stub('services','Operations','property var ops: ({}); function get(id) { return null; } function isLive(r) { return false; } function claim(id,name) {}')
 stub('services','PowerProfile','property bool checked: true; property bool present: true; property string current: "balanced"; property string degradation: ""; function refresh() {}')
 stub('services','Battery','property bool present: true; property int percent: 65; property bool charging: true; property bool low: false; property var peripherals: [{name:"Controller",percent:42,charging:false}]')

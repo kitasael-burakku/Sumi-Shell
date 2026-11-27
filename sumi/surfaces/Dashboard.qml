@@ -286,18 +286,12 @@ Surface {
              : r === "unknown" ? Theme.warn : Theme.fgVariant;
     }
     /** Hora con el formato del usuario (Settings → Calendar → Clock). */
-    function clockOf(ms) {
-        return Qt.formatDateTime(new Date(ms), Settings.clockFormat === "12h" ? "h:mm AP" : "HH:mm");
-    }
+    function clockOf(ms) { return Clock.fmt(ms); }
     /** «today 10:42» · «yesterday 18:10» · «Sep 25 18:10». */
     function whenOf(ms) {
         if (!(ms > 0)) return "";
         void Issues.now;
-        const d = new Date(ms), t = new Date();
-        const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-        const diff = Math.round((day(t) - day(d)) / 86400000);
-        const pre = diff === 0 ? "today" : diff === 1 ? "yesterday" : Qt.formatDate(d, "MMM d");
-        return pre + " " + root.clockOf(ms);
+        return Clock.when(ms);
     }
 
     /**

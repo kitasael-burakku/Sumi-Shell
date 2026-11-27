@@ -57,7 +57,7 @@ Singleton {
     }
     /** Descargando de verdad (en un sobremesa `Battery.present` es falso: nunca pausa por esto). */
     readonly property bool onBattery: Battery.onBattery && Battery.discharging
-    readonly property bool quietMode: DesktopMode.mode === "gaming" || DesktopMode.mode === "cinema"
+    readonly property bool quietMode: Modes.mode === "gaming" || Modes.mode === "cinema"
 
     /** Por qué no rota ahora (texto de la UI), o "". */
     readonly property string pauseReason: {
@@ -69,7 +69,7 @@ Singleton {
         if (Settings.wallRotationPauseFullscreen && root.fullscreenNow) return "Paused · something is fullscreen";
         if (Settings.wallRotationPauseBattery && root.onBattery) return "Paused · on battery";
         if (Settings.wallRotationPauseModes && root.quietMode)
-            return "Paused · " + DesktopMode.mode.charAt(0).toUpperCase() + DesktopMode.mode.substring(1) + " mode";
+            return "Paused · " + Modes.mode.charAt(0).toUpperCase() + Modes.mode.substring(1) + " mode";
         return "";
     }
 
@@ -117,7 +117,7 @@ Singleton {
         root.now = Date.now();
         return { enabled: root.enabled, from: root.from, intervalMs: root.intervalMs,
                  dueInMs: Math.round(root.dueAt - root.now), pause: root.pauseReason,
-                 fullscreen: root.fullscreenNow, onBattery: root.onBattery, mode: DesktopMode.mode,
+                 fullscreen: root.fullscreenNow, onBattery: root.onBattery, mode: Modes.mode,
                  rotations: root.rotations, lastResult: root.lastResult, status: root.statusText,
                  testIntervalMs: root.testIntervalMs };
     }

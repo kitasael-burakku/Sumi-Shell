@@ -117,8 +117,10 @@ Item {
             ? c.temperatureCriticalC
             : (root.known(c.temperatureMaxC) && c.temperatureMaxC > 20 && c.temperatureMaxC <= 200 ? c.temperatureMaxC : null);
         const t = c.temperatureC;
-        const temp = root.metric(t, "°C", lim !== null && root.known(t) ? (t - 20) / (lim - 20) : null,
-                                 lim !== null ? "Limit " + Math.round(lim) + " °C" : "No limit reported",
+        // F11: valor y límite en la unidad del usuario; el arco se calcula en °C
+        const temp = root.metric(root.known(t) ? Sysmon.tempValue(t) : t, Sysmon.tempUnitLabel,
+                                 lim !== null && root.known(t) ? (t - 20) / (lim - 20) : null,
+                                 lim !== null ? "Limit " + Math.round(Sysmon.tempValue(lim)) + " " + Sysmon.tempUnitLabel : "No limit reported",
                                  lim !== null ? "Arc from 20 to " + Math.round(lim) + " degrees, the sensor's limit"
                                               : "The sensor reports no limit, so the arc stays neutral");
         const ram = root.metric(m.usedPct, "%", root.known(m.usedPct) ? m.usedPct / 100 : null,

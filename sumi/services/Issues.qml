@@ -128,14 +128,7 @@ Singleton {
 
     // ---- las fuentes ----------------------------------------------------------------------
 
-    function ago(ms) {
-        if (!(ms > 0)) return "";
-        const d = Math.max(0, (root.now - ms) / 1000);
-        if (d < 90) return "just now";
-        if (d < 5400) return Math.round(d / 60) + " min ago";
-        if (d < 172800) return Math.round(d / 3600) + " h ago";
-        return Math.round(d / 86400) + " days ago";
-    }
+    function ago(ms) { return Clock.ago(ms, "long", root.now); }
     function everyText(days) { return days === 1 ? "daily" : days === 7 ? "weekly" : "every " + days + " days"; }
 
     function _updates() {

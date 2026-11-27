@@ -24,7 +24,6 @@ singleton Web Web.qml
 singleton SshAgent SshAgent.qml
 singleton Toplevels Toplevels.qml
 singleton Units Units.qml
-singleton DesktopMode DesktopMode.qml
 singleton Checks Checks.qml
 singleton Commands Commands.qml
 singleton Activity Activity.qml

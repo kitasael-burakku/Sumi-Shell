@@ -153,7 +153,7 @@ Item {
                 + (info.truncated ? " · partial scan (time or count limit)" : "")
                 + (info.unreadable ? " · " + info.unreadable + " ended during the scan" : "")
                 + (info.cpuState !== "ok" ? " · CPU use after the next reading" : "")
-                + " · updated " + Qt.formatDateTime(new Date(info.at), "hh:mm:ss")
+                + " · updated " + Clock.fmt(info.at, true)
                 + (root.holding && MonitorUi.sortKey !== "pid" ? " · order held while pointing" : "");
         }
         color: MonitorUi.processListInfo && MonitorUi.processListInfo.truncated ? Theme.warn : Theme.fgVariant

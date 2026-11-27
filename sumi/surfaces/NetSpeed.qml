@@ -47,14 +47,7 @@ Surface {
     }
     function fmtMs(v) { return isFinite(v) ? (v < 10 ? v.toFixed(1) : String(Math.round(v))) : "—"; }
 
-    function ago(ms) {
-        if (!ms) return "";
-        const d = Math.floor((Date.now() - ms) / 1000);
-        if (d < 90) return "just now";
-        if (d < 5400) return Math.round(d / 60) + " min ago";
-        if (d < 172800) return Math.round(d / 3600) + " h ago";
-        return Math.round(d / 86400) + " d ago";
-    }
+    function ago(ms) { return Clock.ago(ms, "long"); }
 
     readonly property var kindLabels: ({ ethernet: "Ethernet", wifi: "Wi-Fi", vpn: "VPN", loopback: "Loopback",
                                          other: "Network" })

@@ -32,12 +32,27 @@ Singleton {
     readonly property string live: Acts.pickLive({
         recording: ScreenRecorder.live,
         speed: SpeedTest.busy,
+        work: root.workCount > 0,
         music: Media.has
     }, {
         notchActRecording: Settings.notchActRecording,
         notchActSpeed: Settings.notchActSpeed,
+        notchActWork: Settings.notchActWork,
         notchActMusic: Settings.notchActMusic
     })
+
+    /**
+     * F10 (2026-11-27): trabajo en curso, para la oreja `work` del Edge y la marca del Dashboard en la cara hover y la
+     * barra. Trabajos de Tasks que corren y descargas (Wallhaven) en marcha o en cola.
+     */
+    readonly property int jobCount: Jobs.runners.filter(r => r.busy).length
+    readonly property int downloadCount: Downloads.runningCount + Downloads.queuedCount
+    readonly property int workCount: root.jobCount + root.downloadCount
+    readonly property string workText: root.workCount === 0 ? ""
+        : root.jobCount > 0 && root.downloadCount === 0 ? root.jobCount + (root.jobCount === 1 ? " task" : " tasks")
+        : root.jobCount === 0 ? root.downloadCount + " ↓"
+        : root.workCount + " jobs"
+    readonly property string workGlyph: root.jobCount > 0 ? "terminal" : "download"
 
     // ---- flash ------------------------------------------------------------------------------------------------
 
@@ -86,6 +101,13 @@ Singleton {
         target: Emoji
         function onSettled(rev, ok, reason) {
             if (ok) root.announce("copy", { text: Emoji.pickMode === "paste" ? "Pasted" : "Copied" });
+        }
+    }
+    /** F6 (2026-11-27): también lo elegido en el historial del portapapeles, ya en la selección. */
+    Connections {
+        target: Clip.ops
+        function onSettled(key, rev, state, reason) {
+            if (key === "paste" && state === "ok") root.announce("copy", { text: "Copied" });
         }
     }
 

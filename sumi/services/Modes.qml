@@ -198,6 +198,17 @@ Singleton {
             }); return;
         }
         if (key === "power") {
+            /*
+             * E8 (2026-11-27, ADR-42): el perfil se lee de `PowerProfile` (la misma vía nativa por la que se escribe y
+             * se verifica), no de un proceso por lectura. `powerprofilesctl` queda sólo en pruebas (tests/modes trae
+             * uno falso) y antes de la primera comprobación de PowerProfile al arrancar.
+             */
+            if (!root.testing && PowerProfile.checked) {
+                if (!PowerProfile.ok || PowerProfile.available.indexOf(PowerProfile.current) < 0)
+                    root.failure(done, "Power profiles unavailable", true);
+                else done({ok: true, value: PowerProfile.current, allowed: PowerProfile.available.slice()});
+                return;
+            }
             root.command([root.bin("powerprofilesctl"), "get"], (code, out) => {
                 const value = out.trim();
                 if (code !== 0 || ["balanced", "performance", "power-saver"].indexOf(value) < 0)

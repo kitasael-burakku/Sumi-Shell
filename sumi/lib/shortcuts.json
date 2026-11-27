@@ -40,6 +40,10 @@
       "description": "Turn the Dynamic Bar on or off on the focused monitor", "defaultKeys": "SUPER + CTRL + P",
       "effect": "change", "confirm": "Turn the Dynamic Bar on or off on this screen?",
       "confirmLabel": "Switch" },
+    { "name": "dockToggle", "title": "Edge", "category": "shell", "glyph": "monitor",
+      "description": "Turn Edge on or off on the focused monitor (Bar-Edge with the Dynamic Bar)", "defaultKeys": "SUPER + CTRL + E",
+      "effect": "change", "confirm": "Turn Edge on or off on this screen?",
+      "confirmLabel": "Switch" },
     { "name": "keybinds", "title": "Keyboard shortcuts", "category": "shell", "glyph": "keyboard",
       "description": "Keyboard shortcuts: what each shell shortcut opens, and its key", "defaultKeys": "SUPER + F1" },
 

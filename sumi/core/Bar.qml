@@ -6,6 +6,8 @@ import "../theme"
 import "../services"
 import "../components"
 import "../lib/bar-edge.js" as BarEdge
+import "../lib/wheel.js" as Wheel
+import "../lib/nav-keys.js" as NavKeys
 
 /**
  * LA HOVER BAR PERSISTENTE (fase 8C-1, `futureHoverBarsurface.md`, `new-hoverbar.png`).
@@ -163,10 +165,15 @@ Item {
         // centro: lo que suena, el reloj, las métricas
         if (Media.has) add("media", Media.title.length > 0
             ? (Media.artist.length > 0 ? Media.title + " · " + Media.artist : Media.title) : "Media");
-        add("calendar", "Calendar");
+        // F3 (2026-11-27): ⏯ también con el teclado, junto a lo que suena
+        if (Media.has && !bar.foldMediaOff) add("mediaToggle", Media.playing ? "Pause" : "Play", "");
+        // F10: el próximo evento en el tooltip del reloj
+        add("calendar", CalendarReminders.nextText.length > 0 ? "Calendar · " + CalendarReminders.nextText : "Calendar");
         add("system", "System monitor");
         // derecha: el estado
         addRec();
+        if (bar.speedShown) add("speedtest", "Speed test · " + (isFinite(SpeedTest.liveMbps)
+            ? Math.round(SpeedTest.liveMbps) + " Mb/s" : "measuring"));
         add("awake", Session.keepAwakeEffective ? "Keep awake: on"
             : Session.keepAwake ? "Keep awake: " + (Session.keepAwakeError || "starting")
             : "Keep awake: off", "");
@@ -187,7 +194,8 @@ Item {
         ["emoji", "Emoji and symbols"], ["web", "Web hub"], ["minimizer", "Windows"], ["wallpaper", "Wallpapers"],
         ["theme", "Visual profiles"],
         ["recorder", ScreenRecorder.active ? "Screen recorder · " + ScreenRecorder.statusText : "Screen recorder"],
-        ["dashboard", "Dashboard"], ["services", "Systemd units"], ["cli", "System CLI"]]
+        ["dashboard", LiveActivity.workCount > 0 ? "Dashboard · " + LiveActivity.workText + " running" : "Dashboard"],
+        ["services", "Systemd units"], ["cli", "System CLI"]]
         .filter(x => x[0] !== "services" || Units.supported)
     function toolLabel(k) {
         const e = bar.toolEntries.find(x => x[0] === k);
@@ -197,7 +205,7 @@ Item {
     readonly property string controlLabel: {
         const parts = ["Control center"];
         parts.push(Net.connected ? (Net.kind === "wired" ? "Ethernet" : "Wi-Fi " + Net.ssid) : "Offline");
-        if (Bt.present) parts.push(Bt.connectedCount > 0 ? "Bluetooth " + Bt.connectedCount : "Bluetooth");
+        if (Bt.shown) parts.push(Bt.connectedCount > 0 ? "Bluetooth " + Bt.connectedCount : "Bluetooth");
         parts.push((Audio.muted ? "Muted " : "Volume ") + Math.round(Audio.volume * 100) + "%");
         if (Battery.present) parts.push("Battery " + Battery.percent + "%");
         return parts.join(" · ");
@@ -252,6 +260,16 @@ Item {
         return null;
     }
 
+    /**
+     * F3 (2026-11-27): el clic medio en la barra reproduce o pausa, como en la cápsula y el Edge, con el mismo ajuste
+     * (`shell.island.middleClick`). Los accesos con clic medio propio (la campana) lo atienden ellos.
+     */
+    function middleClick() {
+        if (Settings.islandMiddleClick !== "playpause") return false;
+        bar.cancelPreview();
+        return Media.toggle();
+    }
+
     function activate(k) {
         if (k === "more") {
             // abrirlo cierra lo que hubiera abierto en esta pantalla (si su guarda lo deja: si no, More no se abre)
@@ -292,26 +310,27 @@ Item {
         if (n.length > 0) bar.requestSurface(n);
     }
 
+    /** Shift+⏎ o Menú sobre un acceso: lo de su clic derecho. En la cápsula, la vista de red (como el clic derecho). */
+    function navSecondary() {
+        const k = bar.navKey;
+        if (k === "control") { bar.openPiece("net", bar.itemsByKey[k] || null); return; }
+        const it = bar.itemsByKey[k];
+        if (it && typeof it.secondary === "function") it.secondary();
+    }
+
     function keyPressed(event) {
         const n = bar.navList.length;
         if (!bar.navActive || n === 0) return;
         // la lista cambia al abrir More: el cursor se queda en su acceso
         if (bar.navIdx >= n) bar.navIdx = n - 1;
-        const k = event.key;
-        // en vertical, ↓/↑ además de →/← (la lista va en el orden en que se ve, de arriba abajo)
-        if (k === Qt.Key_Right || k === Qt.Key_Tab || (bar.vertical && k === Qt.Key_Down)) {
-            bar.navIdx = Math.min(n - 1, bar.navIdx + 1); event.accepted = true;
-        } else if (k === Qt.Key_Left || k === Qt.Key_Backtab || (bar.vertical && k === Qt.Key_Up)) {
-            bar.navIdx = Math.max(0, bar.navIdx - 1); event.accepted = true;
-        } else if (k === Qt.Key_Home) {
-            bar.navIdx = 0; event.accepted = true;
-        } else if (k === Qt.Key_End) {
-            bar.navIdx = n - 1; event.accepted = true;
-        } else if (k === Qt.Key_Return || k === Qt.Key_Enter || k === Qt.Key_Space) {
-            if (bar.navKey.length > 0) bar.activate(bar.navKey);
-            event.accepted = true;
-        }
-        // Escape lo resuelve Screen: primero cierra More, después suelta el peek.
+        // F9 (2026-11-27): las mismas teclas que la cara hover (`lib/nav-keys.js`); la lista va en el orden en que se
+        // ve, también en vertical. Escape no se acepta: lo resuelve Screen (primero More, después el peek).
+        const r = NavKeys.step(event.key, event.modifiers, bar.navIdx, n);
+        if (!r.accepted) return;
+        event.accepted = true;
+        bar.navIdx = r.idx;
+        if (r.act === "activate" && bar.navKey.length > 0) bar.activate(bar.navKey);
+        else if (r.act === "secondary") bar.navSecondary();
     }
 
     /** Vista previa (DESIGN §2): la espera empieza al entrar y se cancela al salir. */
@@ -493,7 +512,7 @@ Item {
             return [-more, extra * (22 * s + bar.gapW), 0, 0, 0];
         }
         case "capsule":
-            return [0, t(tmNet) + (Bt.present ? t(tmBt) : 0) + t(tmVol) + (Battery.present ? t(tmBat) : 0), 0, 0, 0];
+            return [0, t(tmNet) + (Bt.shown ? t(tmBt) : 0) + t(tmVol) + (Battery.present ? t(tmBat) : 0), 0, 0, 0];
         case "date":
             return [0, 0, 0, 0, tmDate.advanceWidth + 5 * s];
         case "metricsOff":
@@ -610,8 +629,8 @@ Item {
     Connections { target: centerR; function onImplicitWidthChanged() { bar.refit(); } function onImplicitHeightChanged() { bar.refit(); }
                   function onVisibleChanged() { bar.refit(); } }
     /** Si cambia QUÉ hay (no cuánto mide), los bloqueos de bajada ya no valen. */
-    readonly property string contentKey: [bar.edge, Media.has, Tray.items.length, Updates.any, Bt.present, Battery.present,
-        Privacy.any, Notifs.enabled, bar.s, bar.recShown, ScreenRecorder.live, ScreenRecorder.preparing,
+    readonly property string contentKey: [bar.edge, Media.has, Tray.items.length, Updates.any, Bt.shown, Battery.present,
+        Privacy.any, Notifs.enabled, bar.s, bar.recShown, bar.speedShown, ScreenRecorder.live, ScreenRecorder.preparing,
         ScreenRecorder.offerCopy, Settings.recBarControls, Settings.recTimer].join("|")
 
     /**
@@ -619,6 +638,8 @@ Item {
      * de estado de la derecha. Es lo que la pieza bajo el island es en la presentación island.
      */
     readonly property bool recShown: (ScreenRecorder.active || ScreenRecorder.flashing) && Settings.recIndicator
+    /** F5: el speed test en curso (no la confirmación ni el resultado: eso vive en su vista). */
+    readonly property bool speedShown: SpeedTest.busy
     /** Grabador 2.0 (Settings → Behavior): los botones del tramo y el reloj se pueden quitar; el indicador entero, también. */
     readonly property bool recControls: Settings.recBarControls
     readonly property color recRed: Theme.dangerText
@@ -649,7 +670,10 @@ Item {
     TextMetrics { id: tmVol; font.family: Typography.ui; font.pixelSize: Typography.label * bar.s; font.weight: Typography.wMedium
         text: Math.round(Audio.volume * 100) + "%" }
     TextMetrics { id: tmDate; font.family: Typography.ui; font.pixelSize: Typography.micro * bar.s; font.weight: Typography.wMedium
-        font.capitalization: Font.AllUppercase; font.letterSpacing: Typography.tracking * bar.s; text: Clock.date }
+        font.capitalization: Font.AllUppercase; font.letterSpacing: Typography.tracking * bar.s; text: bar.dateLine }
+    /** F10 (2026-11-27): la fecha y, con el tiempo activado, la temperatura («FRI 27 NOV · 18°»). */
+    readonly property string dateLine: Clock.date + (Weather.shortTemp.length > 0 ? " · " + Weather.shortTemp : "")
+    Claim { target: Weather; key: "bar@" + bar.screenName; value: bar.visible && Weather.configured }
 
     /** Vertical: sólo la CPU, sin «%» (cabe bajo el glifo); el resto en la tooltip y en System monitor. */
     function cpuText() {
@@ -672,7 +696,7 @@ Item {
         if (!Sysmon.active) return compact ? "--" : "CPU --  RAM --";
         const cpu = Number.isFinite(Sysmon.cpuPct) ? Math.round(Sysmon.cpuPct) + "%" : "—";
         const mem = Number.isFinite(Sysmon.memPct) ? Math.round(Sysmon.memPct) + "%" : "—";
-        const t = Sysmon.cpuTempC > 0 ? "  " + Math.round(Sysmon.cpuTempC) + "°" : "";
+        const t = Sysmon.cpuTempC > 0 ? "  " + Math.round(Sysmon.tempValue(Sysmon.cpuTempC)) + "°" : "";
         return compact ? cpu + "  " + mem + t
                        : "CPU " + cpu + "  RAM " + mem + t;
     }
@@ -710,6 +734,8 @@ Item {
         readonly property real gapNow: acc.vert ? accRow.rowSpacing : accRow.columnSpacing
         signal secondary()
         signal middle()
+        /** El acceso tiene su propio clic medio (la campana: Clear all); si no, es el de toda la barra (⏯). */
+        property bool ownsMiddle: false
 
         readonly property bool warm: accArea.containsMouse || bar.navKey === acc.key
         // 8E: el registro de accesos por clave, para el origen (el primero gana: la barra
@@ -795,7 +821,7 @@ Item {
             onClicked: function (mouse) {
                 acc.pressX = acc.vert ? mouse.y : mouse.x;
                 if (mouse.button === Qt.RightButton) acc.secondary();
-                else if (mouse.button === Qt.MiddleButton) acc.middle();
+                else if (mouse.button === Qt.MiddleButton) { if (acc.ownsMiddle) acc.middle(); else bar.middleClick(); }
                 else bar.activate(acc.key);
             }
         }
@@ -923,6 +949,15 @@ Item {
         y: bar.vertical ? bar.bodyAlong : (bar.edge === "bottom" ? bar.thick - bar.bodyThick - bar.bodyOuter : bar.bodyOuter)
         clip: true
 
+        /** F3: clic medio en el hueco de la barra (los accesos llaman a `middleClick` ellos mismos). */
+        MouseArea {
+            objectName: "barMiddle"
+            anchors.fill: parent
+            hoverEnabled: false
+            acceptedButtons: Settings.islandMiddleClick === "playpause" ? Qt.MiddleButton : Qt.NoButton
+            onClicked: bar.middleClick()
+        }
+
         Glass {
             id: barGlass
             anchors.fill: parent
@@ -1035,7 +1070,9 @@ Item {
                 tint: ScreenRecorder.active ? bar.recRed : "transparent"
             }
             Rule { visible: !bar.foldTools }
-            Access { id: dashboardBtn; key: "dashboard"; glyph: "info"; visible: !bar.foldTools }
+            // F10: con trabajo en curso (Tasks, descargas), el número junto al glifo
+            Access { id: dashboardBtn; key: "dashboard"; glyph: "info"; visible: !bar.foldTools
+                     text: LiveActivity.workCount > 0 && !bar.vertical ? String(LiveActivity.workCount) : "" }
             Access { id: servicesBtn; key: "services"; glyph: "server"; visible: !bar.foldTools && Units.supported }
             Access { id: cliBtn; key: "cli"; glyph: "terminal"; visible: !bar.foldTools }
             /** More (nivel ≥ 3): las herramientas, con sus grupos, en un desplegable. */
@@ -1123,7 +1160,7 @@ Item {
             }
             Text {
                 visible: !bar.foldDate
-                text: Clock.date
+                text: bar.dateLine
                 color: Theme.fgVariant
                 font.family: Typography.ui
                 font.pixelSize: Typography.micro * bar.s
@@ -1230,6 +1267,21 @@ Item {
             Rule { visible: bar.recShown }
 
             /**
+             * F5 (2026-11-27): el speed test en curso, como el segmento de grabación; abre su vista. Mismo glifo y
+             * misma cifra que la oreja del Edge (las orejas siguen siendo sólo del Edge, ADR-37).
+             */
+            Access {
+                key: "speedtest"
+                visible: bar.speedShown
+                glyph: SpeedTest.phase === "upload" ? "upload" : "rocket"
+                tint: Theme.primary
+                // ancho fijo (4 cifras con espacio de cifra U+2007): el número cambia cada segundo y la barra no debe moverse
+                text: bar.vertical ? "" : (isFinite(SpeedTest.liveMbps)
+                    ? String(Math.round(SpeedTest.liveMbps)).padStart(4, "\u2007") + " Mb/s" : "\u2007\u2007··· Mb/s")
+            }
+            Rule { visible: bar.speedShown }
+
+            /**
              * Privacidad con TEXTO: el island sólo tiene puntos, y la especificación pide la
              * explicación «al desplegar la barra». Mismos colores que los puntos. En vertical, los
              * puntos en columna, sin texto (no cabe en el ancho de la barra).
@@ -1299,6 +1351,13 @@ Item {
                 glyph: NotifHistory.dnd ? "bell-off" : "bell"
                 text: NotifHistory.unread > 0 ? String(NotifHistory.unread) : ""
                 onSecondary: NotifHistory.toggleDnd()
+                ownsMiddle: true
+                // ADR-42: clic medio = borrar todo, como en la cara hover (la lista lo hace a la vista: la abre si no lo está)
+                onMiddle: {
+                    if (NotifHistory.count === 0) return;
+                    NotifHistory.clearWanted = true;
+                    if (bar.open !== "notifications") bar.activate("notifications");
+                }
             }
             Access {
                 key: "updates"
@@ -1343,7 +1402,9 @@ Item {
                     Icon {
                         name: Net.icon.length > 0 ? Net.icon : "wifi"
                         size: 15 * bar.s
-                        color: !Net.ready ? Theme.fgVariant : (Net.degraded ? Theme.netWarn : (Net.connected ? Theme.fg : Theme.danger))
+                        // ADR-42: alarma con los colores de `Screens.netFace`, como el círculo y la cara hover
+                        color: !Net.ready ? Theme.fgVariant
+                            : (Screens.netFace.tone === "warn" || Screens.netFace.tone === "off") ? Screens.netFace.color : Theme.fg
                         opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
                     }
                     Text {
@@ -1359,7 +1420,7 @@ Item {
                 vertical: bar.vertical
                     id: btPiece
                     readonly property string piece: "bt"
-                    visible: Bt.present
+                    visible: Bt.shown
                     spacing: (bar.vertical ? 1 : 5) * bar.s
                     Icon {
                         name: Bt.icon.length > 0 ? Bt.icon : "bt"
@@ -1410,18 +1471,26 @@ Item {
                      * grosor entero de la cápsula y medio hueco a cada lado a lo largo.
                      */
                     MouseArea {
+                        id: volWheel
                         objectName: "barVolumeWheel"
                         x: bar.vertical ? (volPiece.width - capsule.width) / 2 : -capsule.gapNow / 2
                         y: bar.vertical ? -capsule.gapNow / 2 : (volPiece.height - capsule.height) / 2
                         width: bar.vertical ? capsule.width : volPiece.width + capsule.gapNow
                         height: bar.vertical ? volPiece.height + capsule.gapNow : capsule.height
                         acceptedButtons: Qt.NoButton
+                        /*
+                         * ADR-42: la misma rueda que la isla (`lib/wheel.js` + `Mixer.nudgeVolume`): 120 unidades por
+                         * paso de 5 % sumando trozos de touchpad, y sobre lo pedido en vuelo. Es rueda sobre el propio
+                         * control de volumen, así que no depende de `shell.island.wheel` (la de la isla entera).
+                         */
+                        property real acc: 0
                         onWheel: (w) => {
                             // girar es usar el volumen: la vista previa del Control Center, no
                             bar.cancelPreview();
-                            const dy = w.angleDelta.y !== 0 ? w.angleDelta.y : -w.angleDelta.x;
-                            if (dy !== 0 && Mixer.defaultSink) Mixer.setVolume(Mixer.defaultSink, Audio.volume + (dy > 0 ? 0.05 : -0.05));
                             w.accepted = true;
+                            const r = Wheel.step(volWheel.acc, Wheel.delta(w.angleDelta));
+                            volWheel.acc = r.acc;
+                            if (r.steps !== 0) Mixer.nudgeVolume(r.steps * 0.05);
                         }
                     }
                 }
@@ -1431,9 +1500,9 @@ Item {
                     readonly property string piece: "bat"
                     visible: Battery.present
                     spacing: (bar.vertical ? 1 : 3) * bar.s
-                    readonly property color ink: Battery.low ? Theme.danger : (Battery.externalPower ? Theme.primary : Theme.fgVariant)
+                    readonly property color ink: Battery.ink
                     Icon {
-                        name: bar.batteryGlyph
+                        name: Battery.glyph
                         size: 15 * bar.s
                         color: batPiece.ink
                         opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
@@ -1456,12 +1525,6 @@ Item {
         }
     }
 
-    /** El glifo de la batería, como el del Control Center: por décimas, cargando y baja. */
-    readonly property string batteryGlyph: {
-        if (Battery.low && !Battery.charging) return "battery-alert";
-        const tenth = Battery.percent < 5 ? 0 : Math.min(100, Math.round(Battery.percent / 10) * 10);
-        return (Battery.charging ? "battery-charging-" : "battery-") + tenth;
-    }
 
     /** Cajas globales (x, y, ancho, alto) de los accesos visibles y de las piezas de la cápsula (`barState.at`). */
     function boxes() {

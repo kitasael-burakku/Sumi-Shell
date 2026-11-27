@@ -56,15 +56,7 @@ Singleton {
     }
 
     /** "2h" / "3d" / "now" / "" (nunca). */
-    function ago(epoch) {
-        if (!epoch || epoch <= 0) return "";
-        var d = Math.floor(Date.now() / 1000) - epoch;
-        if (d < 0) return "now";
-        if (d < 90) return "now";
-        if (d < 5400) return Math.round(d / 60) + "m";
-        if (d < 172800) return Math.round(d / 3600) + "h";
-        return Math.round(d / 86400) + "d";
-    }
+    function ago(epoch) { return Clock.ago(epoch * 1000, "compact"); }
 
     Instantiator {
         model: root.watched

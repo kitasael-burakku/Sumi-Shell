@@ -582,7 +582,7 @@ Singleton {
         const ours = (g.greeters || []).filter(x => x.sumi);
         if (ours.length === 0) return { state: "missing", text: "Sumi hasn't been the login screen since this computer started", problems: [] };
         const last = ours[ours.length - 1];
-        const when = last.time ? Qt.formatDateTime(new Date(Number(last.time) * 1000), "HH:mm") : "";
+        const when = last.time ? Clock.fmt(Number(last.time) * 1000) : "";
         const problems = (last.problems || []).map(String);
         return problems.length === 0
             ? { state: "ok", text: "Shown" + (when ? " at " + when : "") + " · no problems", problems: [] }

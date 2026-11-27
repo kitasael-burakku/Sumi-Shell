@@ -76,7 +76,7 @@ Flickable {
         }
         Text {
             visible: root.chips.length > 0
-            text: "Peak = highest value since this window opened · read every 2 s" + (MonitorUi.sensors ? " · " + Qt.formatDateTime(new Date(MonitorUi.current ? MonitorUi.current.at - (MonitorUi.current.monoMs - MonitorUi.sensors.atMonoMs) : 0), "hh:mm:ss") : "")
+            text: "Peak = highest value since this window opened · read every 2 s" + (MonitorUi.sensors ? " · " + Clock.fmt(MonitorUi.current ? MonitorUi.current.at - (MonitorUi.current.monoMs - MonitorUi.sensors.atMonoMs) : 0, true) : "")
             color: Theme.fgVariant
             font.family: Typography.ui; font.pixelSize: Typography.micro * root.s
         }
@@ -106,9 +106,9 @@ Flickable {
                         required property var modelData
                         readonly property real limit: Monitor.known(modelData.critC) ? modelData.critC : Monitor.known(modelData.maxC) ? modelData.maxC : NaN
                         label: modelData.label
-                        value: Monitor.number(modelData.c, " °C", 1)
+                        value: Monitor.tempText(modelData.c, Sysmon.tempUnits, 1)
                         warning: Monitor.known(limit) && modelData.c >= limit
-                        aside: "peak " + Monitor.number(MonitorUi.sensorPeaks[modelData.id], " °C", 1) + (Monitor.known(limit) ? " · limit " + Monitor.number(limit, " °C") : "")
+                        aside: "peak " + Monitor.tempText(MonitorUi.sensorPeaks[modelData.id], Sysmon.tempUnits, 1) + (Monitor.known(limit) ? " · limit " + Monitor.tempText(limit, Sysmon.tempUnits) : "")
                     }
                 }
                 Repeater {

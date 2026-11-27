@@ -363,7 +363,7 @@ Surface {
             anchors.rightMargin: 8 * root.s
             wrapMode: Text.WordWrap
             text: "Unknown state · could not read " + root.scope + " units: " + root.list.error
-                + (root.list.stale ? " · showing the list from " + Qt.formatTime(new Date(root.list.at), "HH:mm") : "")
+                + (root.list.stale ? " · showing the list from " + Clock.fmt(root.list.at) : "")
             color: Theme.warn
             font.family: Typography.ui
             font.pixelSize: Typography.caption * root.s

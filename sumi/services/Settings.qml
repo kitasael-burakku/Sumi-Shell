@@ -60,6 +60,7 @@ Singleton {
     property int notchVisualizerFps: Schema.def("notchVisualizerFps")
     property bool notchActRecording: Schema.def("notchActRecording")
     property bool notchActSpeed: Schema.def("notchActSpeed")
+    property bool notchActWork: Schema.def("notchActWork")
     property bool notchActPower: Schema.def("notchActPower")
     property bool notchActCopy: Schema.def("notchActCopy")
     property bool notchActBluetooth: Schema.def("notchActBluetooth")

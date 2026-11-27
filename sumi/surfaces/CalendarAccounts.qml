@@ -33,7 +33,7 @@ Item {
         if (!iso) return "never";
         const d = new Date(iso);
         if (isNaN(d.getTime())) return "Unknown time";
-        return Qt.formatDateTime(d, Settings.clockFormat === "12h" ? "ddd d MMM, h:mm AP" : "ddd d MMM, HH:mm");
+        return Clock.fmtDated(d, "ddd d MMM, ");
     }
     /** The helper provides a civil date/time, not a UTC timestamp. Keep its clock values. */
     function conflictWhen(raw) {
@@ -49,10 +49,7 @@ Item {
         if (m[4] === undefined) return date + " · All day";
         const hour = Number(m[4]), minute = Number(m[5]);
         if (hour > 23 || minute > 59) return text;
-        const time = Settings.clockFormat === "12h"
-            ? (hour % 12 || 12) + ":" + m[5] + " " + (hour < 12 ? (Qt.locale().amText || "AM") : (Qt.locale().pmText || "PM"))
-            : m[4] + ":" + m[5];
-        return date + " · " + time;
+        return date + " · " + Clock.hm(m[4] + ":" + m[5]);
     }
 
     /** Presentation only: preserve the original helper error for diagnosis. */

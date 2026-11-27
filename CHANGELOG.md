@@ -27,8 +27,43 @@ any MINOR release; every such change is listed here with what to do about it.
   values, and shortcut names stay the same, so nothing needs migrating.
 - The Sumi SDDM notch is called **Login Edge** in the Login screen window's preview and in Settings. The group and
   option labels inside that window come from Sumi SDDM's own schema and change with it.
+- One time contract for the whole shell (`lib/time-format.js`, exposed by `Clock`). The Monitor window, the
+  Services panel, the Login screen status and the event times in Calendar now follow the 12/24-hour setting; they
+  were always 24-hour. «How long ago» texts share one set of thresholds (under 90 s «now», under 90 min in minutes,
+  under 48 h in hours, then days). Notification times on the lock screen use the same short form as the
+  notification cards («5m»).
+- The battery glyph and colour come from one place (`Battery.glyph`, `Battery.ink`), so the Dynamic Bar and the
+  Control Center agree: plugged in and full shows the accent in both.
+- A limited or connecting network is orange and no network is red in the hover face too, like the bar and the side
+  circle (it was red for both).
+- The Bluetooth indicator of the hover face appears only with an adapter, like in the Dynamic Bar. The Services
+  button of the hover face appears only with systemd, like in the Dynamic Bar.
+- The wheel on the Dynamic Bar's volume uses the same steps as the capsule's wheel: touchpad scrolls add up to 5 %
+  steps instead of jumping on every event, and fast scrolling no longer loses steps.
+- The hover face of the capsule and Edge works like the Dynamic Bar's status capsule: clicking the network or
+  Bluetooth icon opens the Control Center, right-click opens Wi-Fi or Bluetooth. The hover face's time opens
+  Calendar and its battery opens the battery settings, as in the bar.
+- Keyboard in the hover face and the Dynamic Bar uses the same keys: → ↓ Tab move on, ← ↑ Shift+Tab move back,
+  Home/End, Return or Space activate, and Shift+Return or the Menu key do what right-click does.
+- Middle click plays or pauses in the Dynamic Bar and Bar-Edge too (the same «Middle click» setting as the capsule);
+  the bar's play/pause button is reachable from the keyboard.
+- With the weather in °F, system temperatures (Dynamic Bar, Monitor, System, lock screen and temperature alerts)
+  are shown in °F as well. Readings and thresholds are unchanged.
 
 ### Added
+
+- Global shortcut `dockToggle` (default `SUPER+CTRL+E`): turns Edge on or off on the focused monitor, like the IPC
+  verb of the same name. The contract now lists 33 shortcuts.
+- A speed test in progress shows in the Dynamic Bar and Bar-Edge as a segment (like recording) and in the capsule
+  in the network circle; Edge keeps its ear.
+- Running tasks and downloads: a count on the Dashboard button (hover face and bar) and, in Edge, a new live
+  activity («Tasks and downloads», Settings → Edge).
+- The clock's tooltip names the next calendar event; with the weather on, the date shows the temperature
+  («FRI 27 NOV · 18°»).
+- Control Center: a row with the power profile (opens Performance) and Keep awake; when a display has no brightness
+  control, a note under the controls says why.
+- «Copied» in Edge also after choosing an item from the clipboard history.
+- Settings → System → Environment lists the audio visualizer (cava) and screen recording (wf-recorder).
 
 - `install.sh migrate identity-v1`: copies the state of the former name (never moves it). Also `--recover` and
   `--revert`.
@@ -54,6 +89,10 @@ any MINOR release; every such change is listed here with what to do about it.
 - Lock rescue on a system without `hyprlock.conf`: hyprlock 0.9 refuses to start without one, so the session stayed
   locked with no client. The rescue now uses the user's config, or the one hyprlock ships.
 - Helpers no longer write `__pycache__` into the shell's tree, so uninstalling removes the tree completely.
+- Middle-clicking the Dynamic Bar's notification bell asks to clear all, like the capsule's hover face. Asking while
+  the notifications panel was already open (its hover preview) reported a binding loop.
+- The hold buttons' drain, the Wallhaven loading sweep and the test countdown follow the animation speed and the
+  Off/Reduced setting (including the temporary override).
 
 ## [0.4.0] - 2026-10-12
 

@@ -263,6 +263,7 @@ Surface {
                                 { label: "30", value: 30 }, { label: "60", value: 60 }] },
                     { id: "notchActRecording", prop: "notchActRecording", kind: "toggle", name: "Screen recording" },
                     { id: "notchActSpeed", prop: "notchActSpeed", kind: "toggle", name: "Speed test" },
+                    { id: "notchActWork", prop: "notchActWork", kind: "toggle", name: "Tasks and downloads" },
                     { id: "notchActPower", prop: "notchActPower", kind: "toggle", name: "Charger" },
                     { id: "notchActCopy", prop: "notchActCopy", kind: "toggle", name: "Copied" },
                     { id: "notchActBluetooth", prop: "notchActBluetooth", kind: "toggle", name: "Bluetooth audio" },
@@ -1953,6 +1954,7 @@ Surface {
         notchViz: ["edge", "notch", "visualizer", "cava", "waves", "spectrum", "bars", "fps", "music", "audio"],
         notchActRecording: ["edge", "notch", "activity", "live", "recorder", "recording", "rec", "timer", "ears"],
         notchActSpeed: ["edge", "notch", "activity", "live", "speed test", "speedtest", "network", "rocket", "ears"],
+        notchActWork: ["edge", "notch", "activity", "live", "tasks", "jobs", "downloads", "wallhaven", "progress", "ears"],
         notchActPower: ["edge", "notch", "activity", "live", "charger", "battery", "power", "plugged", "laptop", "ears"],
         notchActCopy: ["edge", "notch", "activity", "live", "copied", "clipboard", "emoji", "paste", "ears"],
         notchActBluetooth: ["edge", "notch", "activity", "live", "bluetooth", "headphones", "headset", "battery", "ears"],
@@ -2379,15 +2381,7 @@ Surface {
             if (l[i].path === path) return l[i].hasThumb ? "file://" + l[i].thumb : "";
         return !Wallpaper.isVideo(path) && root.exists[path] === true ? "file://" + path : "";
     }
-    function ago(ms) {
-        if (!(ms > 0)) return "";
-        const m = Math.round((Date.now() - ms) / 60000);
-        if (m < 1) return "just now";
-        if (m < 60) return m + " min ago";
-        const h = Math.round(m / 60);
-        if (h < 24) return h + " h ago";
-        return Math.round(h / 24) + " d ago";
-    }
+    function ago(ms) { return Clock.ago(ms, "long"); }
 
     /**
      * Las filas de Recent y Favorites, de `WallpaperMeta`. Id estable por ruta (el foco sigue a
@@ -2548,8 +2542,7 @@ Surface {
         return rows;
     }
     readonly property string envStatusText: Capabilities.checking ? "Checking…"
-        : Capabilities.checkedAt > 0 ? "At " + Qt.formatTime(new Date(Capabilities.checkedAt),
-                                                             Settings.clockFormat === "12h" ? "h:mm AP" : "HH:mm")
+        : Capabilities.checkedAt > 0 ? "At " + Clock.fmt(Capabilities.checkedAt)
         : "Not checked"
     readonly property string envStatusCaption: {
         const n = Capabilities.summary().counts;
@@ -3541,8 +3534,8 @@ Surface {
         case "netCircle": return "Right of the capsule and of Edge · opens the control center";
         case "islandWheel": return Settings.islandWheel === "off" ? "Scrolling over the capsule or Edge does nothing"
                 : "Over the capsule or Edge · 5% per wheel step";
-        case "islandMiddle": return Settings.islandMiddleClick === "off" ? "Middle click over the capsule or Edge does nothing"
-                : "Over the capsule or Edge · the player the Mixer shows";
+        case "islandMiddle": return Settings.islandMiddleClick === "off" ? "Middle click over the capsule, Edge or Dynamic Bar does nothing"
+                : "Over the capsule, Edge or Dynamic Bar · the player the Mixer shows";
         case "reserve": return "Claim the top edge so windows tile below the capsule or Edge";
         case "hoverPreview": return "Resting on an icon previews its panel; a click keeps it open";
         case "osd": return Settings.osdPlacement === "below"
@@ -3603,7 +3596,7 @@ Surface {
                 : Weather.state === "unavailable" ? "Weather unavailable · " + Weather.lastError
                 : Weather.hasData ? "Updated " + Weather.ageText()
                 : "Enter to search by name";
-        case "units": return "Temperature, shared by Calendar and the lock screen";
+        case "units": return "Weather and system temperatures: Dynamic Bar, Monitor and the lock screen";
         case "dock": return root.barHere
                 ? "The Dynamic Bar is on here · it becomes Bar-Edge, joined to the top edge"
                 : "Joined to the top edge instead of the floating capsule · only on this monitor";
@@ -3624,6 +3617,7 @@ Surface {
                     : Settings.notchVisualizerFps >= 30 ? 4 : 2) + "% of a core · no privacy warning";
         case "notchActRecording": return "REC and the elapsed time · the controls below keep only the buttons";
         case "notchActSpeed": return "The live speed while a test runs";
+        case "notchActWork": return "How many tasks or downloads are running";
         case "notchActPower": return Battery.present ? "A few seconds when the charger is plugged in or out"
                 : "No battery on this computer";
         case "notchActCopy": return "A moment after copying or pasting from the emoji picker";

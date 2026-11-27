@@ -49,6 +49,8 @@ var VERSION = 4;
 var CATALOG = [
     { id: "shell.interface.scale", prop: "uiScale", legacy: "uiScale", type: "real",
       def: 1.0, min: 0.8, max: 1.5, section: "General", owner: "shell", apply: "immediate", preset: "layout" },
+    // Densidad: descartada por el usuario el 2026-09-30 (REDISENO, fase 3). Sin fila y sin lector a propósito; la clave
+    // se conserva para no tocar configuraciones guardadas (ADR-42: revisado, no se borra ni se vuelve a proponer).
     { id: "shell.interface.density", prop: "density", type: "enum",
       def: "default", values: ["comfortable", "default", "compact"], section: "", owner: "shell", apply: "immediate" },
     { id: "shell.interface.autoHide", prop: "autoHide", legacy: "autoHide", type: "bool",
@@ -83,7 +85,8 @@ var CATALOG = [
       def: true, section: "Island", owner: "shell", apply: "immediate" },
     /**
      * Gestos sobre la island y el notch (2026-11-17, parte 3 del notch en vivo): la rueda (volumen) y el clic medio
-     * (reproducir/pausar). No en la barra, que tiene su rueda. Sin brillo: la capa no ve el Shift (sin foco de
+     * (reproducir/pausar). El clic medio vale también en la barra desde el 2026-11-27 (F3, ADR-42); la rueda no: la
+     * barra la tiene sobre su pieza de volumen. Sin brillo: la capa no ve el Shift (sin foco de
      * teclado). Encendidos de serie; ausente en un archivo anterior → serie, sin migración.
      */
     { id: "shell.island.wheel", prop: "islandWheel", type: "enum",
@@ -114,6 +117,8 @@ var CATALOG = [
     { id: "shell.notch.activity.recording", prop: "notchActRecording", type: "bool",
       def: true, section: "NotchActivities", owner: "shell", apply: "immediate" },
     { id: "shell.notch.activity.speed", prop: "notchActSpeed", type: "bool",
+      def: true, section: "NotchActivities", owner: "shell", apply: "immediate" },
+    { id: "shell.notch.activity.work", prop: "notchActWork", type: "bool",
       def: true, section: "NotchActivities", owner: "shell", apply: "immediate" },
     { id: "shell.notch.activity.power", prop: "notchActPower", type: "bool",
       def: true, section: "NotchActivities", owner: "shell", apply: "immediate" },

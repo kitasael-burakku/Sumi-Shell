@@ -50,10 +50,7 @@ Item {
     /** Del borde de fuera al contenido: lo que se come la esquina redonda de abajo, más aire. */
     readonly property real pad: 10 * ear.s
 
-    readonly property string batteryGlyph: {
-        const tenth = Battery.percent < 5 ? 0 : Math.min(100, Math.round(Battery.percent / 10) * 10);
-        return (Battery.externalPower ? "battery-charging-" : "battery-") + tenth;
-    }
+    readonly property string batteryGlyph: Battery.glyphFor(Battery.externalPower)
     readonly property bool btHasValue: !!ear.info && typeof ear.info.value === "number" && ear.info.value >= 0
 
     // ---- relevo entre actividades ------------------------------------------------------------------------------
@@ -221,10 +218,11 @@ Item {
 
         Icon {
             anchors.verticalCenter: parent.verticalCenter
-            visible: ear.isLeft && ["speed", "power", "copy", "bluetooth"].indexOf(ear.shown) >= 0
+            visible: ear.isLeft && ["speed", "work", "power", "copy", "bluetooth"].indexOf(ear.shown) >= 0
             size: 15 * ear.s
             scale: ear.pop
             name: ear.shown === "speed" ? (SpeedTest.phase === "upload" ? "upload" : "rocket")
+                : ear.shown === "work" ? LiveActivity.workGlyph
                 : ear.shown === "power" ? ear.batteryGlyph
                 : ear.shown === "copy" ? "check"
                 : (ear.info && ear.info.glyph ? ear.info.glyph : "headphones")
@@ -338,12 +336,13 @@ Item {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            visible: !ear.isLeft && ["recording", "speed", "power", "copy"].indexOf(ear.shown) >= 0
+            visible: !ear.isLeft && ["recording", "speed", "work", "power", "copy"].indexOf(ear.shown) >= 0
                 || (!ear.isLeft && ear.shown === "bluetooth" && ear.btHasValue)
             readonly property real powerPct: Battery.present ? Battery.percent
                 : (ear.info && ear.info.value >= 0 ? ear.info.value : 0)
             text: ear.shown === "recording" ? ScreenRecorder.clock
                 : ear.shown === "speed" ? (isFinite(SpeedTest.liveMbps) ? Math.round(ear.mbpsShown) + " Mb/s" : "···")
+                : ear.shown === "work" ? LiveActivity.workText
                 : ear.shown === "power" ? Math.round(powerPct * ear.count) + "%"
                 : ear.shown === "copy" ? (ear.info && ear.info.text ? ear.info.text : "Copied")
                 : ear.shown === "bluetooth" ? (ear.btHasValue ? Math.round(ear.info.value * ear.count) + "%" : "")

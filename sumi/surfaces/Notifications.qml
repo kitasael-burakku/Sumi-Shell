@@ -129,9 +129,15 @@ Surface {
         root.forceActiveFocus();
     }
 
-    /** Clic central en el island: la pregunta, en cuanto el centro está fijado. */
+    /**
+     * Clic central en el island o en la campana de la barra: la pregunta, en cuanto el centro está fijado.
+     * Se toma fuera del enlace (ADR-42): con el panel ya abierto (la vista previa de la barra), bajar `clearWanted`
+     * dentro de su propio cambio era un «Binding loop» de `clearWantedHere`.
+     */
     readonly property bool clearWantedHere: NotifHistory.clearWanted && root.active && root.engaged
-    onClearWantedHereChanged: if (root.clearWantedHere) {
+    onClearWantedHereChanged: if (root.clearWantedHere) Qt.callLater(root.takeClearWanted)
+    function takeClearWanted() {
+        if (!root.clearWantedHere) return;
         NotifHistory.clearWanted = false;
         root.askClearAll();
     }

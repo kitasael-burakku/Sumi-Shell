@@ -350,17 +350,11 @@ PanelWindow {
         return r === "succeeded" ? Theme.primary : r === "failed" ? Theme.errorColor
              : r === "unknown" ? Theme.warn : Theme.fgVariant;
     }
-    function clockOf(ms) {
-        return Qt.formatDateTime(new Date(ms), Settings.clockFormat === "12h" ? "h:mm AP" : "HH:mm");
-    }
+    function clockOf(ms) { return Clock.fmt(ms); }
     function whenOf(ms) {
         if (!(ms > 0)) return "";
         void Issues.now;
-        const d = new Date(ms), t = new Date();
-        const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-        const diff = Math.round((day(t) - day(d)) / 86400000);
-        const pre = diff === 0 ? "today" : diff === 1 ? "yesterday" : Qt.formatDate(d, "MMM d");
-        return pre + " " + win.clockOf(ms);
+        return Clock.when(ms);
     }
     function checkLine(d) {
         if (!d || !d.ran || d.ran <= 0 || d.findings < 0) return "not run yet";

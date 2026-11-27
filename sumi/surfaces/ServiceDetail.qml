@@ -299,12 +299,8 @@ Surface {
         if (!iso || iso.length === 0) return "";
         const t = Date.parse(iso.replace(/^[A-Za-z]{3} /, ""));
         if (isNaN(t)) return "";
-        const d = Math.floor((Date.now() - t) / 1000);
-        if (d < 0) return "";
-        if (d < 90) return "just now";
-        if (d < 5400) return Math.round(d / 60) + " min ago";
-        if (d < 172800) return Math.round(d / 3600) + " h ago";
-        return Math.round(d / 86400) + " d ago";
+        if (t > Date.now()) return "";
+        return Clock.ago(t, "long");
     }
     function jColor(l) {
         const s = l.toLowerCase();

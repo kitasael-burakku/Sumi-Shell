@@ -30,7 +30,9 @@ var MEANING = {
     cpu: "primary", gpu: "tertiary", memory: "secondary", disks: "secondary", sensors: "tertiary", uptime: "tertiary",
     processes: "secondary", player: "primary", mix: "secondary",
     normal: "primary", focus: "secondary", gaming: "tertiary", cinema: "primary",
-    dnd: "secondary", mode: "tertiary"
+    dnd: "secondary", mode: "tertiary",
+    // F10 (2026-11-27): la fila de energía del Centro de control, en las familias de la fila de encima
+    power: "tertiary", awake: "secondary"
 };
 
 function of(meaning) { return MEANING[meaning] || "primary"; }

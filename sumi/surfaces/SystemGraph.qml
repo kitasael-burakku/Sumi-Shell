@@ -1,5 +1,6 @@
 import QtQuick
 import "../theme"
+import "../services"
 import "../lib/monitor.js" as Monitor
 
 /**
@@ -112,7 +113,7 @@ Item {
         visible: !(root.spec.max > 0) && root.peak > 0
         anchors.right: parent.right
         anchors.top: parent.top
-        text: Monitor.format(root.ceiling, root.spec.unit)
+        text: Monitor.format(root.ceiling, root.spec.unit, Sysmon.tempUnits)
         color: Theme.fgVariant
         opacity: 0.8
         font.family: Typography.mono

@@ -21,7 +21,7 @@ Surface {
             .concat(Battery.present ? [Monitor.line("Battery", Battery.description, Battery.low)] : [])
             .concat(Battery.peripherals.map(p => Monitor.line(p.name, p.percent + "%" + (p.charging ? " · Charging" : ""))))
             .concat(Bt.all.filter(d => d && d.connected && d.batteryAvailable).map(d => Monitor.line(d.name || d.address, Math.round(d.battery * 100) + "%")))})
-    readonly property var cards: Monitor.cards(Sysmon.current, root.energy, Sysmon.alerts)
+    readonly property var cards: Monitor.cards(Sysmon.current, root.energy, Sysmon.alerts, Sysmon.tempUnits)
     property var cardIds: []
     onCardsChanged: {
         const ids = root.cards.map(c => c.id);

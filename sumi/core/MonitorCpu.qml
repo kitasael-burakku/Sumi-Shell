@@ -10,7 +10,7 @@ Flickable {
     property real s: 1
     readonly property var cpu: MonitorUi.current ? MonitorUi.current.cpu || {} : {}
     readonly property var sys: MonitorUi.current ? MonitorUi.current.system || {} : {}
-    readonly property var t: Monitor.temp(root.cpu)
+    readonly property var t: Monitor.temp(root.cpu, Sysmon.tempUnits)
     property bool coresOpen: false
     contentWidth: width
     contentHeight: col.implicitHeight

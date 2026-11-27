@@ -1494,7 +1494,10 @@ CAPS = [
     # autor; ahora cada tarea de tasks.json tiene la suya, `tasks.<id>` (report() las añade).
     ("audio.equalizer", "audio", c_eq),
     ("audio.profileTest", "audio", c_rollback),
+    # E10 (2026-11-27, ADR-42): dos herramientas que la shell usaba sin fila propia en Environment
+    ("audio.visualizer", "audio", c_bin("cava", reason="cava is not installed: the music ear uses simple waves")),
     ("clipboard.history", "desktop", c_clipboard),
+    ("recorder.capture", "desktop", c_bin("wf-recorder", reason="wf-recorder is not installed: the screen recorder can't record")),
     ("desktop.notifications", "desktop", c_notifications),
     ("agenda.calcurse", "desktop", c_bin("calcurse")),
     ("network.manager", "devices", lambda q: c_bus_service(

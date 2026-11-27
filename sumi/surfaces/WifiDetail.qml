@@ -291,14 +291,8 @@ Surface {
         return "wifi-1";
     }
 
-    function ago(ts) {
-        if (!ts) return "never";
-        const d = Math.floor(Date.now() / 1000) - ts;
-        if (d < 90) return "now";
-        if (d < 5400) return Math.round(d / 60) + " min";
-        if (d < 172800) return Math.round(d / 3600) + " h";
-        return Math.round(d / 86400) + " d";
-    }
+    /** `ts` en segundos (NetworkManager). */
+    function ago(ts) { return Clock.ago(ts * 1000, "spaced", undefined, "never"); }
 
     /**
      * ALTURA DIRIGIDA POR EL CONTENIDO. La superficie mide lo que mide su

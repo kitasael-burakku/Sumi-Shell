@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import "../components"
+import "../services"
 import "../theme"
 
 /**
@@ -68,14 +69,8 @@ Rectangle {
     function toggleGroup(app) { const o = Object.assign({}, root.openGroups); o[app] = !o[app]; root.openGroups = o; root.interacted(); }
     function toggleItem(id) { const o = Object.assign({}, root.openItems); o[id] = !o[id]; root.openItems = o; root.interacted(); }
 
-    function ago(t) {
-        const m = Math.max(0, Math.round((Date.now() - t) / 60000));
-        if (m < 1) return "now";
-        if (m < 60) return m + " min";
-        const h = Math.round(m / 60);
-        if (h < 24) return h + " h";
-        return Math.round(h / 24) + " d";
-    }
+    /** La misma cara que las tarjetas de aviso de la shell (ADR-42). */
+    function ago(t) { return Clock.ago(t, "compact"); }
 
     radius: Metrics.rMd * root.s
     color: Theme.tileBg

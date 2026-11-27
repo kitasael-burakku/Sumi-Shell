@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../lib/monitor-alerts.js" as Alerts
+import "../lib/monitor.js" as Monitor
 
 // Una sola fuente de muestras. El detalle posee historial y procesos; summary no.
 // Tres niveles (antes de la fase 12, M1): summary (barra, 5 s), detail (la surface compacta, 1 s,
@@ -178,7 +179,7 @@ Singleton {
             root.addTrend(sample);
             const seen = root.seen;
             for (const k in sample.v) if (sample.v[k] !== null) seen[k] = true;
-            root.alerts = Alerts.evaluate(root.history, seen);
+            root.alerts = Alerts.evaluate(root.history, seen, root.tempUnits);
         }
         if (root.inspect) {
             if (all) {
@@ -337,6 +338,13 @@ Singleton {
     }
     readonly property real cpuPct: root.metric(root.cpu, "usagePct")
     readonly property real cpuTempC: root.metric(root.cpu, "temperatureC")
+    /**
+     * F11 (2026-11-27, decisión del autor): con el tiempo en °F, las temperaturas del sistema también. Los datos, los
+     * umbrales y las alertas siguen en °C; sólo cambia lo que se dibuja (`lib/monitor.js` `tempNum/tempText`).
+     */
+    readonly property string tempUnits: Settings.weatherUnits
+    function tempValue(c) { return Monitor.tempNum(c, root.tempUnits); }
+    readonly property string tempUnitLabel: Monitor.tempUnit(root.tempUnits)
     readonly property real memTotalKb: root.metric(root.memory, "totalB") / 1024
     readonly property real memAvailKb: root.metric(root.memory, "availableB") / 1024
     readonly property real memUsedKb: root.metric(root.memory, "usedB") / 1024

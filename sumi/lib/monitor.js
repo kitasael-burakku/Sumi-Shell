@@ -9,11 +9,19 @@ function bytes(n, rate) {
     while (Math.abs(n) >= 1024 && i < 4) { n /= 1024; i++; }
     return n.toFixed(i ? 1 : 0) + " " + units[i] + (rate ? "/s" : "");
 }
-function temp(o) {
+/*
+ * Temperaturas (F11, 2026-11-27): los datos y los umbrales siguen en °C (los del recolector); sólo lo que se dibuja
+ * pasa a °F cuando el usuario eligió °F para el tiempo (`tu` = Settings.weatherUnits, vía `Sysmon.tempUnits`).
+ */
+function fahrenheit(tu) { return tu === "fahrenheit"; }
+function tempNum(c, tu) { return known(c) && fahrenheit(tu) ? c * 9 / 5 + 32 : c; }
+function tempUnit(tu) { return fahrenheit(tu) ? "°F" : "°C"; }
+function tempText(c, tu, digits) { return number(tempNum(c, tu), " " + tempUnit(tu), digits); }
+function temp(o, tu) {
     o = o || {};
     var limit = known(o.temperatureCriticalC) ? o.temperatureCriticalC : o.temperatureMaxC;
-    return {text: number(o.temperatureC, " °C"), warning: known(limit) && known(o.temperatureC) && o.temperatureC >= limit,
-        limit: known(limit) ? "Sensor limit " + number(limit, " °C") : "Sensor limit unavailable"};
+    return {text: tempText(o.temperatureC, tu), warning: known(limit) && known(o.temperatureC) && o.temperatureC >= limit,
+        limit: known(limit) ? "Sensor limit " + tempText(limit, tu) : "Sensor limit unavailable"};
 }
 function line(label, text, warning) { return {label: label, text: text, warning: !!warning}; }
 // Micrográfica: claves planas de Sysmon.flatten; max 0 = automático.
@@ -21,8 +29,8 @@ function micro(keys, unit, max) { return {keys: keys, unit: unit, max: max || 0}
 // Tarjetas de la surface COMPACTA (antes de la fase 12, M4): valor principal, uno o dos secundarios,
 // una micrográfica de 60 s y a qué sección de la UI de inspección lleva «Details». Nada más:
 // procesos, núcleos, montajes y comparaciones viven en la UI (Super+Ctrl+Y).
-function cards(sample, energy, alerts) {
-    var out = [], c = sample ? sample.cpu || {} : {}, t = temp(c);
+function cards(sample, energy, alerts, tu) {
+    var out = [], c = sample ? sample.cpu || {} : {}, t = temp(c, tu);
     // Aviso = alerta sostenida de Sysmon (lib/monitor-alerts.js), nunca una lectura suelta.
     var warnOf = function(domain) { return (alerts || []).some(function(a) { return a.domain === domain; }); };
     out.push({id: "cpu", section: "cpu", title: "CPU", headline: cpuUsage(sample), aside: t.text,
@@ -31,7 +39,7 @@ function cards(sample, energy, alerts) {
     var gpus = sample && sample.gpus ? sample.gpus : null;
     if (gpus && !gpus.length) out.push({id: "gpu:none", section: "gpu", title: "GPU", headline: "None", aside: "", sub: "No GPU detected", graph: null});
     for (var g of gpus || []) {
-        out.push({id: "gpu:" + g.id, section: "gpu", title: gpus.length > 1 ? "GPU · " + g.card : "GPU", headline: number(g.usagePct, "%"), aside: temp(g).text,
+        out.push({id: "gpu:" + g.id, section: "gpu", title: gpus.length > 1 ? "GPU · " + g.card : "GPU", headline: number(g.usagePct, "%"), aside: temp(g, tu).text,
             sub: "VRAM " + bytes(g.vramUsedB) + " / " + bytes(g.vramTotalB), warning: warnOf("gpu"),
             graph: micro(["gpu/" + g.id + "/usage"], "%", 100)});
     }
@@ -82,12 +90,12 @@ function ago(ms) {
 }
 function volts(v) { return known(v) ? v.toFixed(v < 10 ? 3 : 2) + " V" : "No data"; }
 // Formato de una métrica por su unidad (la del recolector): %, °C, MHz, B, B/s, W, RPM.
-function format(n, unit) {
+function format(n, unit, tu) {
     if (unit === "B") return bytes(n);
     if (unit === "B/s") return bytes(n, true);
     if (unit === "MHz") return freq(n);
     if (unit === "%") return number(n, "%", known(n) && n < 10 ? 1 : 0);
-    if (unit === "°C") return number(n, " °C");
+    if (unit === "°C") return tempText(n, tu);
     if (unit === "W") return number(n, " W", 1);
     return number(n, unit ? " " + unit : "");
 }

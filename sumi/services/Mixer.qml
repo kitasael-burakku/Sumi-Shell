@@ -284,6 +284,17 @@ Singleton {
         return null;
     }
 
+    /**
+     * Un paso relativo de la salida por defecto (rueda de la isla y de la barra, ADR-42): suma sobre lo pedido en
+     * vuelo (`shownVolume`), no sobre el eco de Pipewire, que llega tarde; girar deprisa no pierde pasos.
+     */
+    function nudgeVolume(delta) {
+        const sink = root.defaultSink;
+        if (!sink || !sink.audio) return false;
+        root.setVolume(sink, root.shownVolume(sink) + delta);
+        return true;
+    }
+
     /** `volume` escribe todos los canales; `volumes` es el detalle por canal. */
     function setVolume(n, v) {
         if (!n || !n.audio) return -1;

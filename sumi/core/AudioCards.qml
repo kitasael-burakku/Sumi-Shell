@@ -83,7 +83,7 @@ AudioSection {
                     : !AudioDevices.loaded ? "Reading the audio devices…"
                     : root.cards.length + (root.cards.length === 1 ? " sound card" : " sound cards")
                       + (AudioDevices.others.length ? " · " + AudioDevices.others.length + " virtual" : "")
-                      + " · read at " + Qt.formatDateTime(new Date(AudioDevices.readAt), "hh:mm:ss")
+                      + " · read at " + Clock.fmt(AudioDevices.readAt, true)
                 color: AudioDevices.error ? Theme.errorColor : Theme.fgVariant
                 font.family: Typography.ui; font.pixelSize: Typography.caption * root.s
             }

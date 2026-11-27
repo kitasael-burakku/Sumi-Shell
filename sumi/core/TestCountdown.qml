@@ -126,7 +126,7 @@ PanelWindow {
                 trackColor: Theme.hair
                 value: layer.frac
                 Behavior on value {
-                    enabled: Settings.motionMode === "normal"
+                    enabled: !Motion.still
                     NumberAnimation { duration: 200; easing.type: Easing.Linear }
                 }
             }

@@ -37,7 +37,7 @@ Flickable {
                 id: block
                 required property var modelData
                 required property int index
-                readonly property var t: Monitor.temp(block.modelData)
+                readonly property var t: Monitor.temp(block.modelData, Sysmon.tempUnits)
                 readonly property string k: "gpu/" + block.modelData.id + "/"
                 width: col.width
                 spacing: 12 * root.s

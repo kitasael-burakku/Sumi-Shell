@@ -57,11 +57,30 @@ Surface {
 
     readonly property var sink: Mixer.defaultSink
     readonly property bool hasBrightness: { void Brightness.displays; return Brightness.has(root.screenName); }
+    /** F10 (2026-11-27): el perfil de energía sólo con power-profiles-daemon; sin él, Keep awake ocupa la fila. */
+    readonly property bool hasPower: PowerProfile.present && PowerProfile.ok
+    readonly property var tertiaryShown: root.layout.tertiary.filter(x => x.id !== "power" || root.hasPower)
+    function profileLabel(p) {
+        return p === "power-saver" ? "Power saver" : p.length > 0 ? p.charAt(0).toUpperCase() + p.slice(1) : "";
+    }
+    /**
+     * E10 (2026-11-27, pedido del autor): lo que falta en este equipo se dice debajo de los módulos, no sólo en el
+     * nombre accesible. Hoy: el brillo, con la razón de Environment (Capabilities) si la hay.
+     */
+    readonly property var notices: {
+        const out = [];
+        if (!root.hasBrightness && Brightness.detected) {
+            const why = Capabilities.whyFirst([root.screenName.startsWith("eDP") ? "brightness.backlight" : "brightness.external"]);
+            out.push({ glyph: "brightness", text: why.length > 0 ? "No brightness control on this display: " + why
+                                                            : "This display doesn't offer brightness control (DDC/CI)" });
+        }
+        return out;
+    }
 
     /** El orden del teclado: sale de la distribución y de lo que existe ahora. */
     readonly property var slots: {
         if (root.confirming) return ["cancel", "clear"];
-        return CcLayout.slots(root.layout, { battery: Battery.present, brightness: root.hasBrightness,
+        return CcLayout.slots(root.layout, { battery: Battery.present, brightness: root.hasBrightness, power: root.hasPower,
             notifs: root.shownNotifs.length, more: root.moreUnread > 0,
             clear: Notifs.enabled && NotifHistory.count > 0 });
     }
@@ -112,7 +131,10 @@ Surface {
         if (clear && keys) NotifHistory.clearSet(keys);
         root.focusOn("clearAll");
     }
-    onActiveChanged: if (!root.active) root.confirmKeys = null   // cerrar cancela
+    onActiveChanged: {
+        if (!root.active) root.confirmKeys = null;   // cerrar cancela
+        else PowerProfile.refresh();                 // F10: ¿está el daemon? (un proceso al abrir, ninguno en uso)
+    }
 
     // ---- foco ------------------------------------------------------------------------------
     property int kb: 0
@@ -133,6 +155,7 @@ Surface {
         const item = id === "battery" || id === "settings" ? header
             : ["netToggle", "netOpen", "btToggle", "btOpen", "sound", "brightness"].indexOf(id) >= 0 ? mainRow
             : id === "mode" || id === "dnd" ? secondaryRow
+            : id === "power" || id === "awake" ? tertiaryRow
             : id === "clearAll" ? notifHeader
             : id === "more" ? moreRow : notif || notifArea;
         if (!item || !content) return;
@@ -213,21 +236,17 @@ Surface {
     }
 
     // ---- batería ---------------------------------------------------------------------
-    readonly property color batteryInk: Battery.low ? Theme.errorColor : Battery.charging ? Theme.primary : Theme.fgVariant
-    /** El glifo de la fuente según el nivel (décimas) y la carga; baja y descargando, el de alarma. */
-    readonly property string batteryGlyph: {
-        if (Battery.low && !Battery.charging) return "battery-alert";
-        const tenth = Battery.percent < 5 ? 0 : Math.min(100, Math.round(Battery.percent / 10) * 10);
-        return (Battery.charging ? "battery-charging-" : "battery-") + tenth;
-    }
+    /** Glifo y color de la batería: los de `Battery` (ADR-42), los mismos que en la barra. */
+    readonly property color batteryInk: Battery.ink
+    readonly property string batteryGlyph: Battery.glyph
 
     // ---- modo y DND --------------------------------------------------------------------
     function modeLabel(m) { return m.length > 0 ? m.charAt(0).toUpperCase() + m.slice(1) : ""; }
-    readonly property string modeIcon: DesktopMode.mode === "focus" ? "target"
-        : DesktopMode.mode === "gaming" ? "controller"
-        : DesktopMode.mode === "cinema" ? "tv" : "monitor"
+    readonly property string modeIcon: Modes.mode === "focus" ? "target"
+        : Modes.mode === "gaming" ? "controller"
+        : Modes.mode === "cinema" ? "tv" : "monitor"
     readonly property string dndCaption: {
-        const m = DesktopMode.mode;
+        const m = Modes.mode;
         const special = m !== "normal";
         if (!Notifs.enabled) return "The shell notification server is off";
         if (NotifHistory.dnd)
@@ -242,8 +261,8 @@ Surface {
     readonly property string dndShort: {
         if (!Notifs.enabled) return "Server off";
         if (NotifHistory.dnd)
-            return NotifHistory.dndSource === "mode" && DesktopMode.mode !== "normal"
-                 ? "On · " + root.modeLabel(DesktopMode.mode) + " mode" : "On";
+            return NotifHistory.dndSource === "mode" && Modes.mode !== "normal"
+                 ? "On · " + root.modeLabel(Modes.mode) + " mode" : "On";
         return "Off";
     }
 
@@ -263,6 +282,8 @@ Surface {
         case "settings": SettingsUi.show(root.screenName, "", { from: "controlCenter" }); root.requestClose(); break;
         case "mode": root.requestSurface("performance"); break;   // 11A-1: Dashboard → Performance (D5)
         case "dnd": if (Notifs.enabled) NotifHistory.toggleDnd(); break;
+        case "power": root.requestSurface("performance"); break;   // F10: donde se eligen perfil y modo
+        case "awake": Session.toggleKeepAwake(); break;
         case "more": root.requestSurface("notifications"); break;
         case "clearAll": root.askClear(NotifHistory.keys()); break;
         case "cancel": root.answerClear(false); break;
@@ -301,8 +322,9 @@ Surface {
             sound: { volume: Math.round(root.volume * 100), muted: root.muted, error: root.soundError, sink: root.sink ? String(root.sink.description || root.sink.name) : "" },
             brightness: root.hasBrightness ? { value: Math.round(root.brightness * 100), error: root.brightnessError } : null,
             brightnessNote: root.hasBrightness ? "" : root.brightnessNote,
+            notices: root.notices.map(n => n.text), tertiary: root.tertiaryShown.map(x => x.id),
             battery: { present: Battery.present, percent: Battery.percent, charging: Battery.charging, description: Battery.description, low: Battery.low, glyph: root.batteryGlyph },
-            mode: DesktopMode.mode, dnd: { on: NotifHistory.dnd, source: NotifHistory.dndSource, caption: root.dndCaption, short: root.dndShort },
+            mode: Modes.mode, dnd: { on: NotifHistory.dnd, source: NotifHistory.dndSource, caption: root.dndCaption, short: root.dndShort },
             notif: { server: Notifs.enabled, shown: root.shownNotifs.map(e => ({ key: e.key, app: e.app, summary: e.summary })),
                      latest: root.shownNotifs.length > 0 ? { key: root.shownNotifs[0].key, app: root.shownNotifs[0].app, summary: root.shownNotifs[0].summary } : null,
                      more: root.moreUnread, count: NotifHistory.count, unread: NotifHistory.unread, note: root.notifNote,
@@ -450,6 +472,44 @@ Surface {
                         width: Math.floor(secondaryRow.free * modelData.weight / Math.max(1, secondaryRow.weights))
                         height: root.smallTileH
                         sourceComponent: modelData.id === "mode" ? modePiece : modelData.id === "dnd" ? dndPiece : null
+                    }
+                }
+            }
+
+            // ---- terciaria (F10): perfil de energía y Keep awake, con los pesos de la de encima ----
+            Row {
+                id: tertiaryRow
+                visible: root.tertiaryShown.length > 0
+                width: parent.width
+                height: root.smallTileH
+                spacing: root.gap
+                readonly property real weights: root.tertiaryShown.reduce((a, x) => a + x.weight, 0)
+                readonly property real free: width - Math.max(0, root.tertiaryShown.length - 1) * spacing
+                Repeater {
+                    model: root.tertiaryShown
+                    Loader {
+                        required property var modelData
+                        width: Math.floor(tertiaryRow.free * modelData.weight / Math.max(1, tertiaryRow.weights))
+                        height: root.smallTileH
+                        sourceComponent: modelData.id === "power" ? powerPiece : modelData.id === "awake" ? awakePiece : null
+                    }
+                }
+            }
+
+            // ---- avisos de lo que falta en este equipo (E10) ----
+            Column {
+                visible: root.notices.length > 0
+                width: parent.width
+                spacing: root.gap
+                Repeater {
+                    model: root.notices
+                    Notice {
+                        required property var modelData
+                        width: parent.width
+                        s: root.s
+                        tone: "info"
+                        glyph: modelData.glyph
+                        text: modelData.text
                     }
                 }
             }
@@ -781,6 +841,37 @@ Surface {
             opens: true
             openFocused: root.isFocused("mode")
             onOpened: { root.focusOn("mode"); root.activate("mode"); }
+        }
+    }
+
+    Component {
+        id: powerPiece
+        ControlTile {
+            palette.accent: Theme.zone(Zones.of("power"))
+            s: root.s
+            glyph: "gauge"
+            title: "Power profile"
+            status: root.profileLabel(PowerProfile.shownProfile) + (PowerProfile.degradation.length > 0 ? " · " + PowerProfile.degradation : "")
+            switchable: false
+            opens: true
+            openFocused: root.isFocused("power")
+            onOpened: { root.focusOn("power"); root.activate("power"); }
+        }
+    }
+
+    Component {
+        id: awakePiece
+        ControlTile {
+            palette.accent: Theme.zone(Zones.of("awake"))
+            s: root.s
+            glyph: "awake"
+            title: "Keep awake"
+            status: Session.keepAwakeEffective ? "On" : Session.keepAwake ? (Session.keepAwakeError || "Starting…") : "Off"
+            on: Session.keepAwake
+            opens: false
+            toggleLabel: "Keep awake"
+            toggleFocused: root.isFocused("awake")
+            onToggled: { root.focusOn("awake"); root.activate("awake"); }
         }
     }
 

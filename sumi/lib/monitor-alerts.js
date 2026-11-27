@@ -44,7 +44,9 @@ function limitOf(o, kind) {
 }
 
 // rows: historial (cada fila con `.v`, las métricas planas); seen: claves que alguna vez tuvieron valor.
-function evaluate(rows, seen) {
+function evaluate(rows, seen, tu) {
+    // F11: el texto en la unidad del usuario; el umbral, siempre en °C
+    var deg = function(c) { return tu === "fahrenheit" ? Math.round(c * 9 / 5 + 32) + " °F" : Math.round(c) + " °C"; };
     var out = [];
     if (!rows.length) return out;
     var now = rows[rows.length - 1];
@@ -61,7 +63,7 @@ function evaluate(rows, seen) {
         if (!known(lim.c)) return;
         if (sustained(rows, T.tempSustainS, function(r) { var x = v(r, t.key); return x !== null && x >= lim.c; }))
             add("temp:" + t.key, "warning", t.domain, t.name + " temperature high",
-                Math.round(v(now, t.key)) + " °C for " + T.tempSustainS + " s · limit " + Math.round(lim.c) + " °C" + (lim.source === "default" ? " (default)" : " (sensor)"));
+                deg(v(now, t.key)) + " for " + T.tempSustainS + " s · limit " + deg(lim.c) + (lim.source === "default" ? " (default)" : " (sensor)"));
     });
 
     // Memoria disponible.

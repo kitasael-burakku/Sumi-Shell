@@ -14,6 +14,8 @@
  *   main.left   tarjetas apiladas a la izquierda
  *   main.right  deslizadores verticales a la derecha (columnas, por orden)
  *   secondary   una fila; `weight` es la parte del ancho de cada pieza
+ *   tertiary    otra fila igual debajo (F10, 2026-11-27: perfil de energía y Keep awake); mismos pesos que la de encima
+ *               para que los bordes coincidan. Una pieza que no existe en este equipo (sin perfiles) cede su sitio.
  *   notifications.max  cuántos avisos sin leer se enseñan (D4: 3)
  */
 
@@ -28,7 +30,9 @@ var PIECES = {
     volume:     { slot: "main.right" },
     brightness: { slot: "main.right" },
     mode:       { slot: "secondary" },
-    dnd:        { slot: "secondary" }
+    dnd:        { slot: "secondary" },
+    power:      { slot: "tertiary" },
+    awake:      { slot: "tertiary" }
 };
 
 var DEFAULT = {
@@ -36,6 +40,7 @@ var DEFAULT = {
     header: ["battery", "settings"],
     main: { left: ["network", "bluetooth"], right: ["volume", "brightness"] },
     secondary: [{ id: "mode", weight: 2 }, { id: "dnd", weight: 3 }],
+    tertiary: [{ id: "power", weight: 2 }, { id: "awake", weight: 3 }],
     notifications: { show: true, max: 3 }
 };
 
@@ -59,14 +64,16 @@ function resolve(layout, hidden) {
     var right = ((l.main || {}).right || []).filter(function (id) { return keep(id, "main.right"); });
     var secondary = (l.secondary || []).filter(function (x) { return x && keep(x.id, "secondary"); })
         .map(function (x) { return { id: x.id, weight: x.weight > 0 ? x.weight : 1 }; });
+    var tertiary = (l.tertiary || []).filter(function (x) { return x && keep(x.id, "tertiary"); })
+        .map(function (x) { return { id: x.id, weight: x.weight > 0 ? x.weight : 1 }; });
     var n = l.notifications || {};
-    return { header: header, left: left, right: right, secondary: secondary,
+    return { header: header, left: left, right: right, secondary: secondary, tertiary: tertiary,
              notifications: { show: n.show !== false, max: Math.max(0, Math.min(5, n.max === undefined ? 3 : n.max)) } };
 }
 
 /**
  * Las paradas del teclado, en el orden de lectura: cabecera, tarjetas (cada una: su vista y su interruptor), deslizadores,
- * fila secundaria, avisos. `ctx` dice lo que existe ahora: { battery, brightness, notifs: n, more, clear }.
+ * filas secundaria y terciaria, avisos. `ctx` dice lo que existe ahora: { battery, brightness, power, notifs: n, more, clear }.
  */
 function slots(r, ctx) {
     var out = [];
@@ -78,12 +85,15 @@ function slots(r, ctx) {
         volume: function () { out.push("sound"); },
         brightness: function () { if (ctx.brightness) out.push("brightness"); },
         mode: function () { out.push("mode"); },
-        dnd: function () { out.push("dnd"); }
+        dnd: function () { out.push("dnd"); },
+        power: function () { if (ctx.power) out.push("power"); },
+        awake: function () { out.push("awake"); }
     };
     r.header.forEach(function (id) { each[id](); });
     r.left.forEach(function (id) { each[id](); });
     r.right.forEach(function (id) { each[id](); });
     r.secondary.forEach(function (x) { each[x.id](); });
+    (r.tertiary || []).forEach(function (x) { each[x.id](); });
     if (r.notifications.show) {
         for (var i = 0; i < ctx.notifs; i++) out.push("notif:" + i, "dismiss:" + i);
         if (ctx.more) out.push("more");

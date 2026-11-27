@@ -258,6 +258,12 @@ Singleton {
         return root.connectedCount > 0 ? "bt-on" : "bt";
     }
 
+    /**
+     * Si hay indicador de Bluetooth (ADR-42, uno para la cara hover y la barra): sólo con adaptador, como la batería
+     * sólo con batería. Sin hardware no hay nada que pulsar; Settings → System → Environment explica la ausencia.
+     */
+    readonly property bool shown: root.ready && root.present
+
     /** Contador al lado del glifo en la cara hover, como el `󰂱 N` original. */
     readonly property string badge: (root.ready && root.powered && root.connectedCount > 0)
         ? String(root.connectedCount) : ""

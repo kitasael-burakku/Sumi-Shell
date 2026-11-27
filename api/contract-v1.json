@@ -51,7 +51,7 @@
     "names": ["launcher", "wallpaper", "wallhaven", "monitor", "audio", "media", "settings", "system", "controlCenter",
               "calendar", "calendarUi", "mixer", "web", "power", "clipboard", "emoji", "wifi", "bluetooth", "dashboard", "tasks", "minimizer",
               "services",
-              "theme", "cli", "notifications", "peek", "barToggle", "wallRandom", "keepAwake", "recorder", "keybinds",
+              "theme", "cli", "notifications", "peek", "barToggle", "dockToggle", "wallRandom", "keepAwake", "recorder", "keybinds",
               "loginScreen"]
   },
   "files": {

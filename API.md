@@ -134,16 +134,18 @@ server.
 
 ## Global shortcuts
 
-The shell registers 32 global shortcuts with the app id `sumi`. Bind them in Hyprland as `sumi:<name>`; the
+The shell registers 33 global shortcuts with the app id `sumi`. Bind them in Hyprland as `sumi:<name>`; the
 example configs `sumi/examples/hyprland/sumi.lua` and `sumi.conf` bind all of them except `media`. Since 2026-11-10
 `media` is an alias of `mixer` (the Mixer shows the player and the mix side by side): it still works when bound, but it
 has no default key and no row of its own in the in-shell help. `tasks` (added 2026-11-10) toggles the floating Tasks
 window. `emoji` (added 2026-11-17) is the emoji, kaomoji, symbol and Nerd Font glyph picker. `loginScreen` (added
-2026-11-23) toggles the floating Login screen window (Sumi SDDM: look, preview and system).
+2026-11-23) toggles the floating Login screen window (Sumi SDDM: look, preview and system). `dockToggle` (added
+2026-11-27) turns Edge on or off on the focused monitor, as the IPC verb of the same name does (with the Dynamic Bar,
+that is Bar-Edge).
 
 `launcher`, `wallpaper`, `wallhaven`, `monitor`, `audio`, `media`, `settings`, `system`, `controlCenter`, `calendar`,
 `calendarUi`, `mixer`, `web`, `power`, `clipboard`, `emoji`, `wifi`, `bluetooth`, `dashboard`, `tasks`, `minimizer`, `services`, `theme`, `cli`,
-`notifications`, `peek`, `barToggle`, `wallRandom`, `keepAwake`, `recorder`, `keybinds`, `loginScreen`.
+`notifications`, `peek`, `barToggle`, `dockToggle`, `wallRandom`, `keepAwake`, `recorder`, `keybinds`, `loginScreen`.
 
 Renaming or removing one is an incompatible change.
 
@@ -167,6 +169,7 @@ configurations (`tests/api/api-check.py` keeps them in step).
 | `minimizer` | Window minimizer | Shell and windows | `ALT+Tab` |
 | `peek` | Peek | Shell and windows | `SUPER+CTRL+space` |
 | `barToggle` | Dynamic Bar | Shell and windows | `SUPER+CTRL+P` |
+| `dockToggle` | Edge | Shell and windows | `SUPER+CTRL+E` |
 | `keybinds` | Keyboard shortcuts | Shell and windows | `SUPER+F1` |
 | `wallpaper` | Wallpapers | Wallpaper and theme | `SUPER+W` |
 | `wallRandom` | Random wallpaper | Wallpaper and theme | `SUPER+CTRL+R` |

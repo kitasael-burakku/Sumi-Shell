@@ -6,7 +6,7 @@ src = pathlib.Path(os.environ.get('SUMI_MODES_SRC') or pathlib.Path(__file__).re
 for part in ['services','theme','lib','fake','runtime']:
     (root/part).mkdir(parents=True, exist_ok=True)
 (root/'runtime').chmod(0o700)
-for name in ['services/Modes.qml','lib/modes.js','lib/hypr-dialect.js']:
+for name in ['services/Modes.qml','lib/modes.js','lib/hypr-dialect.js','lib/xdg.js']:
     shutil.copy2(src/name,root/name)
 stubs = {
  'Settings': 'property string motionMode: "normal"',

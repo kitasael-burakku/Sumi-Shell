@@ -66,7 +66,7 @@ Item {
         id: widest
         font.family: Typography.mono
         font.pixelSize: Typography.label * root.s
-        text: root.unit === "%" ? "100.0%" : root.unit === "°C" ? "100 °C" : "1023.9 KiB/s"
+        text: root.unit === "%" ? "100.0%" : root.unit === "°C" ? "212 °F" : "1023.9 KiB/s"
     }
     TextMetrics {
         id: noDataWidth
@@ -128,7 +128,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Math.ceil(Math.max(widest.advanceWidth, noDataWidth.advanceWidth)) + 2 * root.s
                         horizontalAlignment: Text.AlignRight
-                        text: root.shown ? Monitor.format(root.val(root.shown, modelData.key, false), root.unit) : "—"
+                        text: root.shown ? Monitor.format(root.val(root.shown, modelData.key, false), root.unit, Sysmon.tempUnits) : "—"
                         color: Theme.fg
                         font.family: Typography.mono
                         font.pixelSize: Typography.label * root.s
@@ -273,7 +273,7 @@ Item {
         width: root.scaleW - 8 * root.s
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideLeft
-        text: Monitor.format(root.ceiling, root.unit)
+        text: Monitor.format(root.ceiling, root.unit, Sysmon.tempUnits)
         color: Theme.fgVariant
         font.family: Typography.mono
         font.pixelSize: Typography.micro * root.s

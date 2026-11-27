@@ -8,6 +8,8 @@ import "../components"
 import "../lib/notch-activities.js" as Acts
 import "../lib/bar-edge.js" as BarEdge
 import "../lib/shape-open.js" as ShapeOpen
+import "../lib/wheel.js" as Wheel
+import "../lib/nav-keys.js" as NavKeys
 
 /**
  * The island: one Morph per screen whose target geometry is a pure function
@@ -253,21 +255,15 @@ Morph {
     function gestureWheel(w) {
         if (Settings.islandWheel !== "volume") { w.accepted = false; return; }
         w.accepted = true;
-        const dy = w.angleDelta.y !== 0 ? w.angleDelta.y : -w.angleDelta.x;
-        if (dy === 0) return;
-        if (island.wheelAcc * dy < 0) island.wheelAcc = 0;
-        island.wheelAcc += dy;
-        const steps = Math.trunc(island.wheelAcc / 120);
-        if (steps === 0) return;
-        island.wheelAcc -= steps * 120;
-        island.gestureVolume(steps * 0.05);
+        const r = Wheel.step(island.wheelAcc, Wheel.delta(w.angleDelta));
+        island.wheelAcc = r.acc;
+        if (r.steps !== 0) island.gestureVolume(r.steps * 0.05);
     }
-    /** Un paso: suma sobre lo pedido en vuelo (`shownVolume`), no sobre el eco de Pipewire, que llega tarde y en orden. */
+    /** Un paso de volumen (`Mixer.nudgeVolume`, el mismo que la barra), con su OSD. */
     function gestureVolume(delta) {
-        const sink = Mixer.defaultSink;
-        if (!sink) return false;
+        if (!Mixer.defaultSink) return false;
         island.holdForGesture();
-        Mixer.setVolume(sink, Mixer.shownVolume(sink) + delta);
+        Mixer.nudgeVolume(delta);
         island.gestureFeedback("volume");
         return true;
     }
@@ -275,6 +271,9 @@ Morph {
         if (Settings.islandMiddleClick !== "playpause") return false;
         return Media.toggle();
     }
+
+    /** F10: la temperatura de la fecha, al día mientras la cara hover está abierta (la caché vale 30 min). */
+    Claim { target: Weather; key: "hover@" + island.screenName; value: island.mode === "hover" && Weather.configured }
 
     readonly property real restW: restFace.implicitWidth + 2 * Metrics.restPad * s + 2 * island.earW
     readonly property real restH: Metrics.restH * s
@@ -670,18 +669,20 @@ Morph {
         add("recorder", ScreenRecorder.active ? "Screen recorder · " + ScreenRecorder.statusText : "Screen recorder");
         add("mixer", "Audio mixer");
         // sistema
-        add("calendar", "Calendar");
+        add("calendar", CalendarReminders.nextText.length > 0 ? "Calendar · " + CalendarReminders.nextText : "Calendar");
         add("system", "System monitor");
-        add("services", "systemd services");
+        // ADR-42: como en la barra, sin systemd no hay botón de servicios (era un botón muerto)
+        if (Units.supported) add("services", "systemd services");
         add("cli", "sumi commands");
         // sesion
         add("awake", "Keep awake");
         add("settings", "Settings");
-        add("dashboard", "Dashboard");
+        add("dashboard", LiveActivity.workCount > 0 ? "Dashboard · " + LiveActivity.workText + " running" : "Dashboard");
         add("power", "Session power");
         // estado
-        if (Bt.ready && Bt.icon.length > 0) add("bluetooth", "Bluetooth");
-        if (Net.ready && Net.icon.length > 0) add("wifi", "Wi-Fi");
+        // F4 (2026-11-27, como la barra): el estado abre el Control Center; el clic derecho, su vista
+        if (Bt.shown) add("bluetooth", "Control center · right-click: Bluetooth");
+        if (Net.ready && Net.icon.length > 0) add("wifi", "Control center · right-click: Wi-Fi");
         if (island.notifAvailable) add("notifications", island.notifLabel);
         if (Updates.any) add("updates", Updates.risky ? "Updates · risky" : "Updates");
         return out;
@@ -768,28 +769,23 @@ Morph {
         island.navKeyPressed(event);
     }
 
+    /** F9 (2026-11-27): las mismas teclas que la barra (`lib/nav-keys.js`). */
     function navKeyPressed(event) {
-        const n = island.navList.length;
-        if (n === 0)
-            return;
-        const k = event.key;
-        if (k === Qt.Key_Right || k === Qt.Key_Down) {
-            island.navIdx = island.navIdx < 0 ? 0 : Math.min(n - 1, island.navIdx + 1);
-            event.accepted = true;
-        } else if (k === Qt.Key_Left || k === Qt.Key_Up) {
-            island.navIdx = island.navIdx < 0 ? 0 : Math.max(0, island.navIdx - 1);
-            event.accepted = true;
-        } else if (k === Qt.Key_Home) {
-            island.navIdx = 0;
-            event.accepted = true;
-        } else if (k === Qt.Key_End) {
-            island.navIdx = n - 1;
-            event.accepted = true;
-        } else if (k === Qt.Key_Return || k === Qt.Key_Enter) {
-            island.navActivate();
-            event.accepted = true;
-        }
-        // Escape cae sin aceptar: `Screen` cierra el peek.
+        const r = NavKeys.step(event.key, event.modifiers, island.navIdx, island.navList.length);
+        if (!r.accepted)
+            return;   // Escape cae sin aceptar: `Screen` cierra el peek.
+        event.accepted = true;
+        island.navIdx = r.idx;
+        if (r.act === "activate") island.navActivate();
+        else if (r.act === "secondary") island.navSecondary();
+    }
+
+    /** Shift+⏎ o Menú: lo del clic derecho (la vista propia del estado, el No molestar, la lista de updates). */
+    function navSecondary() {
+        const k = island.navCurrentKey;
+        if (k === "bluetooth" || k === "wifi") { island.requestSurface(k); return; }
+        if (k === "notifications") { island.notifToggleDnd(); return; }
+        if (k === "updates") { Updates.list(); return; }
     }
 
     function navActivate() {
@@ -799,7 +795,9 @@ Morph {
         if (k === "awake")   { Session.toggleKeepAwake(); return; }
         if (k === "notifications") { island.notifOpen(); return; }
         if (k === "updates") { Updates.update();          return; }
-        island.requestSurface(k);   // bluetooth · wifi · launcher · … · power
+        // F4: el bloque de estado es la puerta del Control Center, con el ratón y con el teclado (como la barra)
+        if (k === "bluetooth" || k === "wifi") { island.requestSurface("controlCenter"); return; }
+        island.requestSurface(k);   // launcher · … · power
     }
 
     /** A button in the hover face: glyph, hover tint, click. */
@@ -1552,13 +1550,33 @@ Morph {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: Clock.date
+                    // F10: con el tiempo activado, la temperatura junto a la fecha (como en la barra)
+                    text: Clock.date + (Weather.shortTemp.length > 0 ? " · " + Weather.shortTemp : "")
                     color: Theme.fgVariant
                     font.family: Typography.ui
                     font.pixelSize: Typography.micro * island.s
                     font.weight: Typography.wMedium
                     font.capitalization: Font.AllUppercase
                     font.letterSpacing: Typography.tracking * island.s
+                }
+                /**
+                 * F7 (2026-11-27): la hora abre Calendar, como el reloj de la barra. Manejadores y no un MouseArea:
+                 * dentro de un Column, un Item más sería otra fila.
+                 */
+                HoverHandler {
+                    enabled: island.hovering
+                    cursorShape: Qt.PointingHandCursor
+                    // como el botón Calendar: su tooltip (con el próximo evento) o su vista previa
+                    onHoveredChanged: {
+                        if (hovered) island.hoverKey = "calendar";
+                        else if (island.hoverKey === "calendar") island.hoverKey = "";
+                    }
+                }
+                TapHandler {
+                    objectName: "hoverClock"
+                    enabled: island.hovering
+                    acceptedButtons: Qt.LeftButton
+                    onTapped: island.requestSurface("calendar")
                 }
             }
         }
@@ -1666,6 +1684,7 @@ Morph {
             }
             IconButton {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: Units.supported
                 glyph: "server"
                 navKey: "services"
                 lit: island.open === "services"
@@ -1703,7 +1722,9 @@ Morph {
                 anchors.verticalCenter: parent.verticalCenter
                 glyph: "info"
                 navKey: "dashboard"
-                lit: island.open === "dashboard"
+                // F10: con trabajo en curso (Tasks, descargas), el número, como la campana
+                badge: LiveActivity.workCount > 0 ? String(LiveActivity.workCount) : ""
+                lit: island.open === "dashboard" || LiveActivity.workCount > 0
                 onActivated: island.requestSurface("dashboard")
             }
             IconButton {
@@ -1732,7 +1753,7 @@ Morph {
                 anchors.verticalCenter: parent.verticalCenter
                 width: btAviso.implicitWidth
                 height: btAviso.implicitHeight
-                visible: Bt.ready && Bt.icon.length > 0
+                visible: Bt.shown
                 readonly property bool navFocused: island.navCurrentKey === "bluetooth"
 
                 Rectangle {
@@ -1749,10 +1770,10 @@ Morph {
                     id: btAviso
                     anchors.centerIn: parent
                     s: island.s
-                    active: Bt.ready && Bt.icon.length > 0
+                    active: Bt.shown
                     icon: Bt.icon
                     label: Bt.badge
-                    tint: island.open === "bluetooth" ? Theme.primary
+                    tint: (island.open === "bluetooth" || island.open === "controlCenter") ? Theme.primary
                         : Bt.lowBattery ? Theme.danger
                         : (Bt.connectedCount > 0) ? Theme.primary
                         : ((btArea.containsMouse || btBtn.navFocused) ? Theme.fg : Theme.fgVariant)
@@ -1765,9 +1786,10 @@ Morph {
                     hoverEnabled: true
                     enabled: island.hovering
                     cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: island.hoverKey = "bluetooth"
                     onExited: if (island.hoverKey === "bluetooth") island.hoverKey = "";
-                    onClicked: island.requestSurface("bluetooth")
+                    onClicked: (mouse) => island.requestSurface(mouse.button === Qt.RightButton ? "bluetooth" : "controlCenter")
                 }
             }
 
@@ -1796,8 +1818,10 @@ Morph {
                     active: Net.ready && Net.icon.length > 0
                     icon: Net.icon
                     label: Net.badge
-                    tint: island.open === "wifi" ? Theme.primary
-                        : (Net.degraded || !Net.connected) ? Theme.danger
+                    // ADR-42: los colores de alarma son los de `Screens.netFace` (círculo y barra): limitada o
+                    // conectando en naranja, sin red en rojo; el reposo y el hover siguen siendo de esta cara
+                    tint: (island.open === "wifi" || island.open === "controlCenter") ? Theme.primary
+                        : (Screens.netFace.tone === "warn" || Screens.netFace.tone === "off") ? Screens.netFace.color
                         : ((netArea.containsMouse || netBtn.navFocused) ? Theme.fg : Theme.fgVariant)
                 }
 
@@ -1808,9 +1832,10 @@ Morph {
                     hoverEnabled: true
                     enabled: island.hovering
                     cursorShape: Qt.PointingHandCursor
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: island.hoverKey = "wifi"
                     onExited: if (island.hoverKey === "wifi") island.hoverKey = "";
-                    onClicked: island.requestSurface("wifi")
+                    onClicked: (mouse) => island.requestSurface(mouse.button === Qt.RightButton ? "wifi" : "controlCenter")
                 }
             }
 
@@ -1865,18 +1890,28 @@ Morph {
                 }
             }
 
-            /** La batería, en las máquinas que tienen una. */
+            /** La batería, en las máquinas que tienen una. F7: el clic abre su estado en Settings, como en la barra. */
             Text {
                 objectName: "batteryIndicator"
                 anchors.verticalCenter: parent.verticalCenter
                 visible: Battery.present
                 text: Battery.percent + "%"
-                color: Battery.low ? Theme.danger : (Battery.externalPower ? Theme.primary : Theme.fgVariant)
+                color: Battery.ink
                 font.family: Typography.ui
                 font.pixelSize: Typography.label * island.s
                 font.weight: Typography.wStrong
                 font.features: { "tnum": 1 }
                 Accessible.name: Battery.description
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4 * island.s
+                    enabled: island.hovering
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        const sc = Screens.resolve(island.screenName);
+                        if (sc) sc.showSettings("system/power/batteryStatus", null);
+                    }
+                }
             }
         }
     }

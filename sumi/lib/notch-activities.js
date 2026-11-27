@@ -23,6 +23,8 @@ var WIDTHS = { ear: 34, wide: 52, wider: 74 };
 var CATALOG = [
     { id: "recording", kind: "live",  prio: 30, setting: "notchActRecording", left: "ear", right: "wide" },
     { id: "speed",     kind: "live",  prio: 20, setting: "notchActSpeed",     left: "ear", right: "wider" },
+    // F10 (2026-11-27): un trabajo de Tasks o una descarga en curso; por debajo del speed test, por encima de la música
+    { id: "work",      kind: "live",  prio: 15, setting: "notchActWork",      left: "ear", right: "wide" },
     { id: "music",     kind: "live",  prio: 10, setting: "notchActMusic",     left: "ear", right: "ear" },
     { id: "power",     kind: "flash", holdMs: 3000, setting: "notchActPower",     left: "ear", right: "wide" },
     { id: "copy",      kind: "flash", holdMs: 1500, setting: "notchActCopy",      left: "ear", right: "wider" },

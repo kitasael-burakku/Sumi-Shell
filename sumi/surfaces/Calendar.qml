@@ -378,9 +378,11 @@ Surface {
         if (!it) return "";
         if (it.allDay) return "All day";
         if (it.start === "..:.." && it.end === "..:..") return "All day (continues)";
-        if (it.start === "..:..") return "→ " + it.end;
-        if (it.end === "..:..") return it.start + " →";
-        return it.start === it.end ? it.start : it.start + "–" + it.end;
+        // ADR-42: el dato llega en «HH:MM»; se dibuja con el formato del usuario
+        const a = Clock.hm(it.start), b = Clock.hm(it.end);
+        if (it.start === "..:..") return "→ " + b;
+        if (it.end === "..:..") return a + " →";
+        return it.start === it.end ? a : a + "–" + b;
     }
     function durationLabel(sec) {
         if (!sec || sec <= 0) return "";
@@ -1307,7 +1309,7 @@ It is removed from the local calendar. This cannot be undone." : ""
                             const ev = d.event;
                             const oc = d.occurrence || ev;
                             const zone = oc && !oc.allDay && Agenda.displayTz.length > 0 && oc.tz !== Agenda.displayTz
-                                ? "\n" + oc.startTime + "–" + oc.endTime + " in " + oc.tz : "";
+                                ? "\n" + Clock.hm(oc.startTime) + "–" + Clock.hm(oc.endTime) + " in " + oc.tz : "";
                             const span = oc && oc.allDay && oc.startDate !== oc.lastDate
                                 ? "\n" + root.dayLabel(oc.startDate) + " – " + root.dayLabel(oc.lastDate) : "";
                             const rep = d.source === "local" && ev && ev.repeat ? "\n" + CalendarEdit.repeatText(ev.repeat) + (d.modified ? "\nThis occurrence was changed" : "") : (d.recurring ? "\nRepeats" : "");

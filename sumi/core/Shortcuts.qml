@@ -277,6 +277,14 @@ Scope {
         onPressed: Screens.runShortcut("barToggle", "", "shortcut")
     }
 
+    /** Super+Ctrl+E (F8, 2026-11-27): Edge encendido o apagado en el monitor enfocado (con la barra, Bar-Edge). */
+    GlobalShortcut {
+        appid: root.appId
+        name: "dockToggle"
+        description: Keybinds.description("dockToggle")
+        onPressed: Screens.runShortcut("dockToggle", "", "shortcut")
+    }
+
     GlobalShortcut {
         appid: root.appId
         name: "wallRandom"
