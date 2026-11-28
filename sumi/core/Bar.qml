@@ -720,6 +720,8 @@ Item {
         /** Fondo y filo en reposo (la cápsula de estado); transparentes = los de siempre. */
         property color restBg: "transparent"
         property color restEdge: "transparent"
+        property alias background: plate
+        property bool hoverBackground: true
         property real cornerR: Metrics.r(8) * bar.s
         /** Separación entre las piezas de dentro. */
         property real innerSpacing: 5 * bar.s
@@ -732,6 +734,9 @@ Item {
         readonly property bool vert: bar.vertical && !acc.inMore
         /** El hueco real entre las piezas de dentro, a lo largo (en vertical el `Grid` usa la mitad). */
         readonly property real gapNow: acc.vert ? accRow.rowSpacing : accRow.columnSpacing
+        readonly property real contentAlong: acc.vert ? accRow.y : accRow.x
+        readonly property real pointerAlong: acc.vert ? accArea.mouseY : accArea.mouseX
+        readonly property bool pointed: accArea.containsMouse
         signal secondary()
         signal middle()
         /** El acceso tiene su propio clic medio (la campana: Clear all); si no, es el de toda la barra (⏯). */
@@ -761,14 +766,17 @@ Item {
         width: acc.vert ? Math.max(bar.vAccW, accRow.implicitWidth + 4 * bar.s) : accRow.implicitWidth + 2 * acc.padX
         height: acc.vert ? Math.max(26 * bar.s, accRow.implicitHeight + 2 * acc.padY) : 26 * bar.s
 
-        Rectangle {
+        InteractionPlate {
+            id: plate
             anchors.fill: parent
+            s: bar.s
             radius: acc.cornerR
-            color: bar.navKey === acc.key ? Theme.selBg : (accArea.containsMouse ? Theme.hoverBg : acc.restBg)
-            // fase 3A (ADR-42): el cursor de teclado con el anillo de foco de toda la shell (grosor y color)
-            border.width: bar.navKey === acc.key ? Metrics.focusWidth * bar.s : acc.restEdge.a > 0 ? 1 : 0
-            border.color: bar.navKey === acc.key ? Theme.focusRing : acc.restEdge
-            Behavior on color { ColorAnimation { duration: Motion.fast } }
+            rest: acc.restBg
+            rim: acc.restEdge
+            focused: bar.navKey === acc.key
+            selected: acc.lit
+            hovered: acc.hoverBackground && acc.pointed
+            down: accArea.pressed && acc.pointed
         }
 
         /** Glifo y texto: en fila, o (en vertical) el número bajo el glifo. */
@@ -795,6 +803,8 @@ Item {
                 size: 15 * bar.s
                 color: acc.lit ? acc.accent : (acc.tint.a > 0 ? acc.tint : accIcon.tint)
                 opacity: (acc.lit || acc.warm) ? 1 : 0.85
+                Behavior on opacity { NumberAnimation { duration: Motion.fast } }
+                Behavior on color { ColorAnimation { duration: Motion.fast } }
             }
             Text {
                 visible: acc.text.length > 0
@@ -805,6 +815,7 @@ Item {
                 font.pixelSize: (acc.vert ? Typography.caption : Typography.label) * bar.s
                 font.weight: Typography.wMedium
                 font.features: { "tnum": 1 }
+                Behavior on color { ColorAnimation { duration: Motion.fast } }
             }
         }
 
@@ -1032,7 +1043,7 @@ Item {
             readonly property real along: 8 * bar.s - bar.bodyAlong
             x: bar.vertical ? (bodyBox.width - width) / 2 : along
             y: bar.vertical ? along : (bodyBox.height - height) / 2
-            opacity: bar.contentVis
+            opacity: Motion.stagger(bar.contentVis, 0.18)
             spacing: 4 * bar.s
 
             Access { id: settingsBtn; key: "settings"; glyph: "cog" }
@@ -1099,7 +1110,7 @@ Item {
             readonly property real along: bar.posOf(clock) - 4 * bar.s - bar.lenOf(centerL)
             x: bar.vertical ? (bodyBox.width - width) / 2 : along
             y: bar.vertical ? along : (bodyBox.height - height) / 2
-            opacity: bar.contentVis
+            opacity: Motion.stagger(bar.contentVis, 0.08)
             visible: Media.has && !bar.foldMediaOff
             spacing: 0
 
@@ -1147,7 +1158,7 @@ Item {
             readonly property real along: bar.len / 2 - bar.bodyAlong - bar.lenOf(clock) / 2 + bar.centerShift
             x: bar.vertical ? (bodyBox.width - width) / 2 : along
             y: bar.vertical ? along : (bodyBox.height - height) / 2
-            opacity: bar.contentVis
+            opacity: Motion.stagger(bar.contentVis, 0)
             innerSpacing: bar.vertical ? 0 : 5 * bar.s
             readonly property var parts: bar.clockParts(Clock.time)
             Text {
@@ -1194,7 +1205,7 @@ Item {
             readonly property real along: bar.posOf(clock) + bar.lenOf(clock) + 4 * bar.s
             x: bar.vertical ? (bodyBox.width - width) / 2 : along
             y: bar.vertical ? along : (bodyBox.height - height) / 2
-            opacity: bar.contentVis
+            opacity: Motion.stagger(bar.contentVis, 0.08)
             visible: !bar.foldMetricsOff
             spacing: 0
             Rule {}
@@ -1214,7 +1225,7 @@ Item {
             readonly property real along: bar.len - bar.bodyAlong - 8 * bar.s - bar.lenOf(rightRow)
             x: bar.vertical ? (bodyBox.width - width) / 2 : along
             y: bar.vertical ? along : (bodyBox.height - height) / 2
-            opacity: bar.contentVis
+            opacity: Motion.stagger(bar.contentVis, 0.18)
             spacing: 4 * bar.s
 
             /**
@@ -1382,6 +1393,7 @@ Item {
                 key: "control"
                 restBg: Theme.tileBg
                 restEdge: Theme.hair
+                hoverBackground: capsule.hoverPiece === null
                 cornerR: Metrics.pill(bar.vertical ? capsule.width : 26 * bar.s)
                 padX: 9 * bar.s
                 padY: 8 * bar.s
@@ -1390,6 +1402,40 @@ Item {
                 // también con las vistas de sus indicadores (el Mixer enciende la música: es su alias)
                 lit: bar.open.length > 0 && ["controlCenter", "wifi", "bluetooth"]
                     .some(n => Screens.familyOf(n) === Screens.familyOf(bar.open))
+                readonly property Item hoverPiece: capsule.pointed ? bar.pieceAt(capsule.pointerAlong) : null
+                property Item lastPiece: null
+                onHoverPieceChanged: if (capsule.hoverPiece) capsule.lastPiece = capsule.hoverPiece
+                function pieceOpacity(piece: Item): real {
+                    return capsule.lit || bar.navKey === capsule.key || capsule.hoverPiece === piece ? 1 : 0.85;
+                }
+
+                // Una sola pastilla recorre los indicadores. Vive fuera del Grid y de sus zonas de clic.
+                property Item pieceHighlight: Rectangle {
+                    id: segment
+                    objectName: "barStatusHighlight"
+                    parent: capsule.background
+                    readonly property real inset: Math.min(3 * bar.s, capsule.width / 2, capsule.height / 2)
+                    readonly property real length: bar.lenOf(capsule)
+                    readonly property real span: capsule.lastPiece
+                        ? Math.min(length - 2 * inset, bar.lenOf(capsule.lastPiece) + 6 * bar.s) : 0
+                    property real position: capsule.lastPiece
+                        ? Math.max(inset, Math.min(length - inset - span, capsule.contentAlong
+                            + (bar.vertical ? capsule.lastPiece.y : capsule.lastPiece.x)
+                            + (bar.lenOf(capsule.lastPiece) - span) / 2)) : inset
+                    x: bar.vertical ? inset : position
+                    y: bar.vertical ? position : inset
+                    width: bar.vertical ? capsule.width - 2 * inset : span
+                    height: bar.vertical ? span : capsule.height - 2 * inset
+                    radius: Metrics.pill(Math.min(width, height))
+                    color: Theme.pressedBg
+                    opacity: capsule.hoverPiece ? 0.7 : 0
+                    visible: opacity > 0
+                    Behavior on opacity { NumberAnimation { duration: Motion.fast } }
+                    Behavior on position {
+                        enabled: !Motion.still && segment.opacity > 0.05
+                        NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic }
+                    }
+                }
                 onSecondary: {
                     const p = bar.pieceAt(capsule.pressX);
                     if (p) bar.openPiece(p.piece, p);
@@ -1406,7 +1452,8 @@ Item {
                         // ADR-42: alarma con los colores de `Screens.netFace`, como el círculo y la cara hover
                         color: !Net.ready ? Theme.fgVariant
                             : (Screens.netFace.tone === "warn" || Screens.netFace.tone === "off") ? Screens.netFace.color : Theme.fg
-                        opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
+                        opacity: capsule.pieceOpacity(netPiece)
+                        Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                     }
                     Text {
                         visible: !bar.foldCapsule && !bar.vertical && text.length > 0
@@ -1427,7 +1474,8 @@ Item {
                         name: Bt.icon.length > 0 ? Bt.icon : "bt"
                         size: 15 * bar.s
                         color: Bt.lowBattery ? Theme.danger : (Bt.connectedCount > 0 ? Theme.primary : Theme.fgVariant)
-                        opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
+                        opacity: capsule.pieceOpacity(btPiece)
+                        Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                     }
                     Text {
                         visible: !bar.foldCapsule && !bar.vertical && text.length > 0
@@ -1453,7 +1501,8 @@ Item {
                             name: Audio.muted ? "volume-off" : (Audio.volume > 0.66 ? "volume-high" : (Audio.volume > 0.33 ? "volume-mid" : "volume-low"))
                             size: 15 * bar.s
                             color: capsule.lit ? capsule.accent : Theme.fg
-                            opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
+                            opacity: capsule.pieceOpacity(volPiece)
+                            Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                         }
                         Text {
                             visible: !bar.foldCapsule
@@ -1506,7 +1555,8 @@ Item {
                         name: Battery.glyph
                         size: 15 * bar.s
                         color: batPiece.ink
-                        opacity: (capsule.lit || capsule.warm) ? 1 : 0.85
+                        opacity: capsule.pieceOpacity(batPiece)
+                        Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                     }
                     Text {
                         // el nombre que buscan los bancos (tools/laptop): texto y color del porcentaje
@@ -1574,8 +1624,8 @@ Item {
         if (list.length === 0) return null;
         const half = capsule.gapNow / 2;
         for (let i = 0; i < list.length; i++) {
-            const q = list[i].mapToItem(capsule, 0, 0);
-            if (x < (bar.vertical ? q.y : q.x) + bar.lenOf(list[i]) + half) return list[i];
+            const start = capsule.contentAlong + (bar.vertical ? list[i].y : list[i].x);
+            if (x < start + bar.lenOf(list[i]) + half) return list[i];
         }
         return list[list.length - 1];
     }

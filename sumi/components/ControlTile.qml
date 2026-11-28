@@ -77,6 +77,20 @@ Rectangle {
         onClicked: bodyArea.act()
     }
 
+    Rectangle {
+        anchors.centerIn: icon
+        width: 30 * tile.s
+        height: width
+        radius: Metrics.rSm * tile.s
+        color: tile.lit ? Qt.alpha(tile.acc.accent, 0.14) : Theme.hoverBg
+        scale: bodyArea.pressed && bodyArea.containsMouse && !Motion.still ? 0.92 : 1
+        Behavior on color { ColorAnimation { duration: Motion.fast } }
+        Behavior on scale {
+            enabled: !Motion.still
+            NumberAnimation { duration: bodyArea.pressed ? Motion.snap : Motion.fast; easing.type: Easing.OutCubic }
+        }
+    }
+
     Icon {
         id: icon
         x: tile.pad
@@ -86,6 +100,7 @@ Rectangle {
         size: 19 * tile.s
         color: tile.lit ? tile.acc.accent : Qt.alpha(tile.acc.accent, tile.available ? 0.78 : 0.5)
         opacity: tile.switchable && !tile.available ? Theme.disabledOpacity : 1
+        Behavior on color { ColorAnimation { duration: Motion.fast } }
     }
 
     // Posición y ancho ENTEROS (2026-11-15, banco de la fase D): con ancho fraccionario, al cambiar el ancho (el
@@ -157,6 +172,14 @@ Rectangle {
             name: "chevron-right"
             size: 12 * tile.s
             color: bodyArea.containsMouse || tile.openFocused ? Theme.fg : Theme.fgVariant
+            Behavior on color { ColorAnimation { duration: Motion.fast } }
+            transform: Translate {
+                x: !Motion.still && bodyArea.containsMouse ? 2 * tile.s : 0
+                Behavior on x {
+                    enabled: !Motion.still
+                    NumberAnimation { duration: Motion.fast; easing.type: Easing.OutCubic }
+                }
+            }
         }
     }
 }

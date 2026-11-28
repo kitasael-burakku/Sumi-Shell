@@ -886,6 +886,8 @@ Morph {
         id: cl
         default property alias content: clRow.data
         property real gap: 7
+        property real entryDelay: 0.12
+        property bool statusGroup: false
         readonly property real padX: 6
         readonly property real padY: 4
 
@@ -900,12 +902,16 @@ Morph {
          */
         implicitHeight: Math.max(26 * island.s, clRow.implicitHeight + 2 * cl.padY * island.s)
         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+        opacity: Motion.stagger(hoverFace.progress, cl.entryDelay)
 
-        Rectangle {
+        InteractionPlate {
             anchors.fill: parent
-            radius: Metrics.rSm * island.s
-            color: clHover.hovered ? Theme.hoverBg : "transparent"
-            Behavior on color { ColorAnimation { duration: Motion.fast } }
+            visible: clRow.implicitWidth > 0
+            s: island.s
+            radius: cl.statusGroup ? Metrics.pill(height) : Metrics.rSm * island.s
+            rest: cl.statusGroup ? Theme.tileBg : "transparent"
+            rim: cl.statusGroup ? Theme.hair : "transparent"
+            hovered: clHover.hovered && !cl.statusGroup
         }
 
         HoverHandler { id: clHover; enabled: island.hovering }
@@ -923,6 +929,7 @@ Morph {
         width: Metrics.hair
         height: 20 * island.s
         color: Theme.hair
+        opacity: Motion.stagger(hoverFace.progress, 0.16)
     }
 
     component IconButton: Item {
@@ -950,14 +957,14 @@ Morph {
 
         readonly property bool warm: btnArea.containsMouse || btn.navFocused
 
-        Rectangle {
+        InteractionPlate {
             anchors.fill: parent
-            anchors.margins: -3 * island.s
+            anchors.margins: (btn.navFocused ? -3 : -1) * island.s
+            s: island.s
             radius: Metrics.r(7) * island.s
-            visible: btn.navFocused
-            color: Theme.selBg
-            border.width: Metrics.focusWidth * island.s
-            border.color: Theme.focusRing
+            focused: btn.navFocused
+            hovered: btnArea.containsMouse
+            down: btnArea.pressed && btnArea.containsMouse
         }
 
         Row {
@@ -978,6 +985,7 @@ Morph {
                  */
                 color: btn.lit ? btn.accent : btnIcon.tint
                 opacity: (btn.lit || btn.warm) ? 1 : 0.82
+                Behavior on opacity { NumberAnimation { duration: Motion.fast } }
                 Behavior on color { ColorAnimation { duration: Motion.fast } }
             }
             Text {
@@ -1262,6 +1270,9 @@ Morph {
         // pequeñas (rest↔hover↔OSD) sigue el relevo corto.
         Behavior on vis { enabled: island.small; NumberAnimation { duration: Motion.snap; easing.type: Easing.OutCubic } }
         opacity: island.barMode ? 0 : (island.mode === "rest" ? island.reveal : restFace.vis)
+        transform: Translate {
+            y: Motion.still ? 0 : -3 * island.s * (1 - restFace.opacity)
+        }
         /**
          * Visible por MODO, nunca por su propia opacidad: `visible: opacity > 0.01`
          * cierra un ciclo —opacidad → visible → layout → `implicitWidth` → ancho
@@ -1506,18 +1517,22 @@ Morph {
          * `Motion.snap` y entra sólo cuando la forma lleva `Motion.handoff`
          * hecho, así que nunca se cruza con lo que se va.
          */
-        property real vis: island.hovering ? 1 : 0
-        Behavior on vis { enabled: island.small; NumberAnimation { duration: Motion.snap; easing.type: Easing.OutCubic } }
-        opacity: island.hovering ? island.reveal : hoverFace.vis
+        // Al salir, parte de lo que ya se veía, también si el puntero se fue a mitad de la entrada.
+        property real progress: island.hovering ? island.reveal : 0
+        Behavior on progress {
+            enabled: !island.hovering && island.small
+            NumberAnimation { duration: Motion.snap; easing.type: Easing.OutCubic }
+        }
         /**
          * Visible por MODO, nunca por su propia opacidad: `visible: opacity > 0.01`
          * cierra un ciclo —opacidad → visible → layout → `implicitWidth` → ancho
          * destino → `closeness` → opacidad— porque un positioner invisible congela
          * su medida. Ver `reveal`.
          */
-        visible: island.hovering || hoverFace.vis > 0.01
+        visible: island.hovering || hoverFace.progress > 0.01
 
         Cluster {
+            entryDelay: 0.26
             Workspaces {
                 anchors.verticalCenter: parent.verticalCenter
                 screenName: island.screenName
@@ -1529,6 +1544,7 @@ Morph {
         Rule {}
 
         Cluster {
+            entryDelay: 0
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 1 * island.s
@@ -1578,6 +1594,7 @@ Morph {
 
         /** Escribe y encuentra: aplicación, recorte, sitio, ventana. */
         Cluster {
+            entryDelay: 0.19
             IconButton {
                 anchors.verticalCenter: parent.verticalCenter
                 glyph: "search"
@@ -1623,6 +1640,7 @@ Morph {
 
         /** Lo que se ve y lo que se oye. El tema va junto al fondo: matugen deriva uno del otro. */
         Cluster {
+            entryDelay: 0.08
             // 9E-1: Media y Mixer son una sola vista: un solo botón (el del Mixer, más abajo)
             IconButton {
                 anchors.verticalCenter: parent.verticalCenter
@@ -1661,6 +1679,7 @@ Morph {
 
         /** La máquina: qué día es, cómo va, qué corre, y la CLI. */
         Cluster {
+            entryDelay: 0.04
             IconButton {
                 anchors.verticalCenter: parent.verticalCenter
                 glyph: "calendar"
@@ -1695,6 +1714,7 @@ Morph {
 
         /** La sesión. `power` va el último de todo el bloque: es lo que peor sienta pulsar sin querer. */
         Cluster {
+            entryDelay: 0.17
             IconButton {
                 anchors.verticalCenter: parent.verticalCenter
                 glyph: "awake"
@@ -1739,6 +1759,8 @@ Morph {
          * `󰂱 N` del script de bluetooth): el presupuesto de esta cara es abierto.
          */
         Cluster {
+            statusGroup: true
+            entryDelay: 0.26
             gap: Metrics.sp2
 
             Item {
@@ -1749,14 +1771,14 @@ Morph {
                 visible: Bt.shown
                 readonly property bool navFocused: island.navCurrentKey === "bluetooth"
 
-                Rectangle {
+                InteractionPlate {
                     anchors.fill: parent
-                    anchors.margins: -4 * island.s
+                    anchors.margins: (btBtn.navFocused ? -4 : -2) * island.s
+                    s: island.s
                     radius: Metrics.rXs * island.s
-                    visible: btBtn.navFocused
-                    color: Theme.selBg
-                    border.width: Metrics.focusWidth * island.s
-                    border.color: Theme.focusRing
+                    focused: btBtn.navFocused
+                    hovered: btArea.containsMouse
+                    down: btArea.pressed && btArea.containsMouse
                 }
 
                 Aviso {
@@ -1794,14 +1816,14 @@ Morph {
                 visible: Net.ready && Net.icon.length > 0
                 readonly property bool navFocused: island.navCurrentKey === "wifi"
 
-                Rectangle {
+                InteractionPlate {
                     anchors.fill: parent
-                    anchors.margins: -4 * island.s
+                    anchors.margins: (netBtn.navFocused ? -4 : -2) * island.s
+                    s: island.s
                     radius: Metrics.rXs * island.s
-                    visible: netBtn.navFocused
-                    color: Theme.selBg
-                    border.width: Metrics.focusWidth * island.s
-                    border.color: Theme.focusRing
+                    focused: netBtn.navFocused
+                    hovered: netArea.containsMouse
+                    down: netArea.pressed && netArea.containsMouse
                 }
 
                 Aviso {
@@ -1944,6 +1966,7 @@ Morph {
         // el cajón (2026-11-19): pegado al borde lejano del lado de la barra, y el contenido viaja visible
         drawer: island.drawerPhase
         farEdge: island.drawer ? island.attachEdge : "top"
+        entryEdge: island.barMode ? island.attachEdge : "top"
         anchorContent: !Motion.off && (island.barMode ? ShapeOpen.anchorsContent("bar", Motion.barPanelStyle)
             : ShapeOpen.anchorsContent("island", Motion.islandStyle))
         contentOffset: island.styleRun && island.styleKind === "bar" && island.styleName === "ink"

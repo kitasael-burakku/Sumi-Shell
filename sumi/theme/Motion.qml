@@ -214,6 +214,13 @@ Singleton {
     // La cara de reposo espera a que la cápsula casi mida lo suyo.
     readonly property real settleHandoff: 0.82
 
+    // Reparte el relevo de la cara en el progreso de la forma, con un final común.
+    function stagger(progress: real, delay: real): real {
+        if (motion.still) return progress;
+        const t = Math.max(0, Math.min(1, (progress - delay) / (1 - delay)));
+        return t * t * (3 - 2 * t);
+    }
+
     function enter(closeness, late) {
         const h = late ? Math.max(motion.settleHandoff, motion.still ? motion.calmHandoff : 0)
                        : (motion.still ? motion.calmHandoff : motion.handoff);

@@ -197,6 +197,16 @@ Item {
     }
     Component.onCompleted: Qt.callLater(surface.revealContent)
 
+    // El relevo normal acompaña el fundido. Los estilos anclados y el cajón ya traen su recorrido.
+    readonly property real entryShift: Motion.still || !surface.host || surface.host.drawer
+        || surface.host.anchorContent || surface.host.styleReveal >= 0 ? 0 : 6 * surface.s * (1 - surface.revealOpacity)
+    transform: Translate {
+        x: !surface.host ? 0 : surface.host.entryEdge === "left" ? -surface.entryShift
+            : surface.host.entryEdge === "right" ? surface.entryShift : 0
+        y: !surface.host ? 0 : surface.host.entryEdge === "top" ? -surface.entryShift
+            : surface.host.entryEdge === "bottom" ? surface.entryShift : 0
+    }
+
     enabled: open
     opacity: revealOpacity
     visible: open || opacity > 0.01

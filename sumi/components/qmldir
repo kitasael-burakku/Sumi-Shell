@@ -54,6 +54,7 @@ Interference Interference.qml
 VSlider VSlider.qml
 ControlTile ControlTile.qml
 GlyphButton GlyphButton.qml
+InteractionPlate InteractionPlate.qml
 NotifRow NotifRow.qml
 ControlSlider ControlSlider.qml
 PreviewCycle PreviewCycle.qml

@@ -418,6 +418,13 @@ Surface {
                         }
                     }
                 }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: Metrics.hair
+                    color: Theme.cardBorder
+                }
             }
 
             // ---- principal: tarjetas a la izquierda, deslizadores a la derecha ----

@@ -52,16 +52,19 @@ Row {
         Accessible.name: b.label
         Accessible.onPressAction: if (b.active) b.pressed()
 
-        Rectangle {
+        InteractionPlate {
             anchors.fill: parent
+            s: nav.s
             radius: Metrics.r(6) * nav.s
-            color: area.containsMouse && b.active ? Theme.hoverBg : "transparent"
+            hovered: area.containsMouse && b.active
+            down: area.pressed && hovered
         }
         Icon {
             anchors.centerIn: parent
             name: b.glyph
             size: 12 * nav.s
             color: !b.active ? Theme.disabledFg : (area.containsMouse ? Theme.fg : Theme.fgVariant)
+            Behavior on color { ColorAnimation { duration: Motion.fast } }
         }
         MouseArea {
             id: area

@@ -48,6 +48,7 @@ Item {
      */
     property bool drawer: false
     property string farEdge: "top"
+    property string entryEdge: "top"
     /** La forma descubre el contenido desde su primer borde; mantiene el orden de lectura. */
     property bool anchorContent: false
     /** Desplazamiento a lo largo del borde para descubrir el panel en su sitio mientras la gota se centra. */
