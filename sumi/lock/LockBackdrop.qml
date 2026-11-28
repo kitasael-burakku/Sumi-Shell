@@ -3,24 +3,12 @@ import QtQuick.Effects
 import "../theme"
 
 /**
- * Lo que hay detrás del vidrio de la pantalla de bloqueo (docs/lock/FONDO.md).
+ * Fondo del bloqueo. Sobre un respaldo opaco se muestra una imagen reducida, con
+ * desenfoque moderado y un velo neutro de la paleta. En sesión la imagen ya llega
+ * reducida desde LockSession; la vista previa admite también un fondo completo.
  *
- * De abajo arriba: el RESPALDO (degradado opaco, siempre debajo), la imagen
- * reducida y desenfocada, el oscurecido y el velo de acento. Todo sale de `Theme`:
- * cambia con el wallpaper y con matugen como el resto del shell (ADR-1, ADR-12).
- *
- * La imagen es `current.png`, el mismo fondo que hyprlock, a un cuarto de la
- * pantalla: un fondo desenfocado no necesita resolución (FONDO §3). Se decodifica
- * sólo con `source` puesto, y con un contador en la URL para no servir un
- * `current.png` viejo desde la caché de imágenes. Medido en S7: 23–41 ms, sin
- * precarga.
- *
- * El desenfoque se cachea (`layer.enabled`): sólo se recalcula cuando cambia la
- * imagen, no al repintar el minuto o el cursor.
- *
- * Opacidad: este componente es el VELO. La garantía de que en reposo no se ve el
- * escritorio es el color opaco de la ventana (FONDO §5, I-7), que pone quien la
- * tiene; aquí el respaldo también es opaco.
+ * La capa cachea el efecto. El color opaco de la ventana, fuera de esta pieza,
+ * protege el escritorio en reposo incluso cuando no se puede cargar la imagen.
  */
 Item {
     id: root
@@ -70,8 +58,9 @@ Item {
             id: img
             anchors.fill: parent
             source: root.source.length > 0 ? ("file://" + root.source + "?n=" + root.generation) : ""
-            sourceSize.width: 480
-            sourceSize.height: 270
+            // Limita el detalle también en salidas de alta resolución.
+            sourceSize.width: 128
+            sourceSize.height: 80
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: false
@@ -84,9 +73,9 @@ Item {
             source: img
             autoPaddingEnabled: false
             blurEnabled: true
-            blurMax: 64
+            blurMax: 40
             blur: 1.0
-            saturation: -0.1
+            saturation: -0.35
             brightness: root.brightness
         }
     }
@@ -101,7 +90,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0;  color: Qt.alpha(Theme.primary, 0.06) }
+            GradientStop { position: 0.0;  color: Qt.alpha(Theme.primary, 0.02) }
             GradientStop { position: 0.45; color: "transparent" }
             GradientStop { position: 1.0;  color: "transparent" }
         }

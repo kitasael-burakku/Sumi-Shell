@@ -77,9 +77,19 @@ Scope {
     signal failedAttempt()
     signal bufferCleared()
 
-    function setBuffer(text) { root.touch(); authCtl.setBuffer(text); }
+    function setBuffer(text) {
+        if (root.phase === "leaving")
+            return;
+        root.touch();
+        authCtl.setBuffer(text);
+    }
     function clearBuffer() { root.touch(); authCtl.clearBuffer(); }
-    function submit() { root.touch(); authCtl.submit(); }
+    function submit() {
+        if ((root.phase !== "locked" && root.phase !== "entering") || !root.secure)
+            return;
+        root.touch();
+        authCtl.submit();
+    }
 
     /** Actividad del usuario: despierta y reinicia la espera de la calma (LockCalm). */
     function touch() { calmCtl.activity(); }
@@ -314,7 +324,8 @@ Scope {
     }
 
     function beginLeave() {
-        if (root.phase !== "locked")
+        // PAM puede terminar mientras el centro sigue entrando. Wayland ya confirmó el bloqueo.
+        if ((root.phase !== "locked" && root.phase !== "entering") || !root.secure)
             return;
         root.reported = {};
         root.phase = "leaving";

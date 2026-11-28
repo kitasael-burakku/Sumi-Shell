@@ -16,3 +16,4 @@ MetricTile MetricTile.qml
 MetricGrid MetricGrid.qml
 WeatherSummary WeatherSummary.qml
 LockCalm LockCalm.qml
+LockPreviewPane LockPreviewPane.qml

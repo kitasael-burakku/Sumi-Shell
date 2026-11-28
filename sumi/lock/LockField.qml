@@ -26,10 +26,11 @@ Rectangle {
     property color edge: Theme.glassBorder
     /** Esta es la pantalla que manda y tiene el teclado: su campo refleja el buffer. */
     property bool owner: false
+    property bool accepted: false
     /** Tab / Mayús+Tab dentro del campo: la superficie decide adónde (recorrido del Lock). */
     signal step(int dir)
 
-    readonly property bool lockFocusable: true
+    readonly property bool lockFocusable: !root.accepted
     readonly property string lockFocusName: "Password"
     function lockTakeFocus() { field.focusField(); }
 
@@ -48,7 +49,35 @@ Rectangle {
     readonly property int length: root.context ? root.context.bufferLength : 0
     readonly property bool checking: root.state === "checking"
     readonly property bool lockedOut: root.state === "lockedOut"
-    readonly property bool canSubmit: root.length > 0 && !root.checking && !root.lockedOut
+    readonly property bool canSubmit: root.length > 0 && !root.checking && !root.lockedOut && !root.accepted
+    property bool showChecking: false
+    property real shakeOffset: 0
+    property bool readyForDots: false
+    Component.onCompleted: Qt.callLater(function () { root.readyForDots = true; })
+
+    onCheckingChanged: {
+        waitIndicator.stop();
+        root.showChecking = false;
+        if (root.checking)
+            waitIndicator.start();
+    }
+    Timer { id: waitIndicator; interval: Motion.lockCheckDelay; onTriggered: root.showChecking = root.checking }
+    transform: Translate { x: root.shakeOffset }
+    SequentialAnimation {
+        id: shake
+        NumberAnimation { target: root; property: "shakeOffset"; from: 0; to: -5 * root.s; duration: Math.round(Motion.lockShake * 0.22); easing.type: Easing.OutQuad }
+        NumberAnimation { target: root; property: "shakeOffset"; to: 4 * root.s; duration: Math.round(Motion.lockShake * 0.30); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: root; property: "shakeOffset"; to: 0; duration: Math.round(Motion.lockShake * 0.48); easing.type: Easing.OutCubic }
+    }
+    Connections {
+        target: Motion
+        function onStillChanged() {
+            if (Motion.still) {
+                shake.stop();
+                root.shakeOffset = 0;
+            }
+        }
+    }
 
     readonly property string placeholder: root.lockedOut ? (root.lockoutText.length > 0 ? "Locked · " + root.lockoutText : "Locked")
         : root.state === "prompt" ? String(root.auth.prompt || "").replace(/:\s*$/, "")
@@ -59,7 +88,7 @@ Rectangle {
     implicitWidth: Metrics.lockFieldW * root.s
     implicitHeight: Metrics.lockCapsuleH * root.s
     radius: Metrics.pill(height)
-    color: Qt.alpha(Theme.surfaceContainerHigh, 0.7)
+    color: Theme.light ? Theme.surface : Theme.raisedBg
     border.width: 1
     border.color: root.edge
     Behavior on border.color { ColorAnimation { duration: Motion.fast } }
@@ -68,6 +97,10 @@ Rectangle {
         target: root.context
         ignoreUnknownSignals: true
         function onBufferCleared() { if (field.text.length > 0) field.clear(); }
+        function onFailedAttempt() {
+            if (root.focused && root.visible && Motion.lockShake > 0)
+                shake.restart();
+        }
     }
 
     Row {
@@ -115,10 +148,13 @@ Rectangle {
         width: root.height - 12 * root.s
         height: width
         radius: Metrics.pill(width)
-        color: root.canSubmit ? (sendArea.containsMouse ? Qt.alpha(Theme.primary, 0.32) : Theme.selBg) : "transparent"
-        opacity: root.canSubmit ? 1 : 0.4
+        color: root.accepted ? Qt.alpha(Theme.ok, 0.16)
+            : root.canSubmit ? (sendArea.containsMouse ? Qt.alpha(Theme.primary, 0.32) : Theme.selBg)
+            : "transparent"
+        opacity: root.canSubmit || root.showChecking || root.accepted ? 1 : 0.4
+        Behavior on color { enabled: !root.accepted; ColorAnimation { duration: Motion.fast } }
         Accessible.role: Accessible.Button
-        Accessible.name: "Unlock"
+        Accessible.name: root.accepted ? "Unlocked" : root.checking ? "Checking password" : "Unlock"
         enabled: root.canSubmit
         activeFocusOnTab: false   // recorrido explícito de la superficie (15C)
         readonly property bool lockFocusable: send.enabled
@@ -127,16 +163,45 @@ Rectangle {
         border.color: Theme.focusRing
         Keys.onPressed: (e) => {
             if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space) {
-                if (!e.isAutoRepeat && root.context) root.context.submit();
+                if (!e.isAutoRepeat && root.context && root.canSubmit) root.context.submit();
                 e.accepted = true;
             }
         }
 
         Icon {
             anchors.centerIn: parent
-            name: "chevron-right"
+            visible: !root.showChecking || root.accepted
+            name: root.accepted ? "check" : "chevron-right"
             size: 16 * root.s
-            color: root.canSubmit ? Theme.primary : Theme.fgVariant
+            color: root.accepted ? Theme.ok : root.canSubmit ? Theme.primary : Theme.fgVariant
+        }
+        Item {
+            id: spinner
+            anchors.centerIn: parent
+            visible: root.showChecking && !root.accepted
+            width: 14 * root.s
+            height: width
+
+            Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: "transparent"
+                border.width: Math.max(1, Math.round(root.s))
+                border.color: Qt.alpha(Theme.primary, 0.38)
+            }
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 4 * root.s
+                height: 2 * root.s
+                radius: height / 2
+                color: Theme.primary
+            }
+            RotationAnimation on rotation {
+                from: 0; to: 360
+                loops: Animation.Infinite
+                duration: 800
+                running: spinner.visible && !Motion.still
+            }
         }
         MouseArea {
             id: sendArea
@@ -173,7 +238,8 @@ Rectangle {
             allowPaste: false
             clearKeys: true
             opacity: 0
-            enabled: !root.checking
+            // El campo conserva el foco mientras PAM trabaja; sólo se cierra la edición.
+            Binding { target: field.input; property: "readOnly"; value: root.checking || root.accepted }
             onClearRequested: if (root.context) root.context.clearBuffer()
             backtabs: true
             // sólo lo tecleado aquí va al contexto; lo que pone el espejo ya es el buffer
@@ -184,7 +250,7 @@ Rectangle {
             }
             onTabbed: root.step(1)
             onBacktabbed: root.step(-1)
-            onAccepted: if (root.context) root.context.submit()
+            onAccepted: if (root.context && root.canSubmit) root.context.submit()
             onDismissed: if (root.context) root.context.clearBuffer()
         }
 
@@ -192,7 +258,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.length === 0
+            visible: root.length === 0 && !root.checking && !root.accepted
             text: root.placeholder
             elide: Text.ElideRight
             color: Theme.fgVariant
@@ -210,11 +276,19 @@ Rectangle {
             Repeater {
                 model: Math.min(root.length, fieldArea.maxDots)
                 delegate: Rectangle {
+                    id: dot
                     anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                     width: 6 * root.s
                     height: width
                     radius: Metrics.pill(width)
                     color: Theme.fg
+
+                    Component.onCompleted: if (root.readyForDots && root.focused && !Motion.off && !root.checking) dotIn.start()
+                    ParallelAnimation {
+                        id: dotIn
+                        NumberAnimation { target: dot; property: "scale"; from: Motion.still ? 1 : 0.58; to: 1; duration: Motion.lockDot; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: dot; property: "opacity"; from: 0.4; to: 1; duration: Motion.lockDot }
+                    }
                 }
             }
             Text {
@@ -227,7 +301,7 @@ Rectangle {
             }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: root.focused && !root.checking
+                visible: root.focused && !root.checking && !root.accepted
                 width: 2 * root.s
                 height: 16 * root.s
                 radius: Metrics.r(1)

@@ -20,6 +20,8 @@ Item {
     property var context
     property real s: 1
     property bool compact: false
+    property bool showName: true
+    property bool accepted: false
     property bool focused: false
     property bool calm: false
     property string lockoutText: ""
@@ -35,11 +37,7 @@ Item {
     readonly property int failed: root.auth.failed || 0
     /** La calma, animada UNA vez aquí (no un Behavior por pieza, que suavizaría la coreografía). */
     property real restOpacity: root.calm ? 0 : 1
-    Behavior on restOpacity { NumberAnimation { duration: root.calm ? Motion.lockCalmFade : Motion.fast; easing.type: Easing.InOutCubic } }
-    /** Lo que aparece alrededor del núcleo al entrar (15F): avatar, nombre, fecha, estado. */
-    property real around: 1
-    /** El reloj y el campo propios: ocultos mientras viajan sus réplicas desde el island (15F). */
-    property bool coreShown: true
+    Behavior on restOpacity { NumberAnimation { duration: root.calm && !Motion.off ? Motion.lockCalmFade : Motion.fast; easing.type: Easing.InOutCubic } }
     readonly property Item clockItem: timeText
     readonly property Item fieldItem: field
 
@@ -69,7 +67,6 @@ Item {
             id: timeText
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.time
-            opacity: root.coreShown ? 1 : 0
             color: Theme.fg
             font.family: Typography.uiChosen
             font.weight: Typography.wStrong
@@ -80,7 +77,6 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.longDate.toUpperCase()
-            opacity: root.around
             color: Theme.fgVariant
             font.family: Typography.uiChosen
             font.weight: Typography.wMedium
@@ -97,14 +93,14 @@ Item {
             size: Metrics.lockBoardAvatar
             source: root.context ? root.context.avatarSource : ""
             name: root.context ? root.context.userName : ""
-            opacity: root.restOpacity * root.around
+            opacity: root.restOpacity
         }
         // en compacto, el avatar pequeño va en línea con el nombre (el alto es para los widgets)
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: root.compact
             spacing: Metrics.sp2 * root.s
-            opacity: root.restOpacity * root.around
+            opacity: root.restOpacity
             Avatar {
                 anchors.verticalCenter: parent.verticalCenter
                 s: root.s
@@ -114,6 +110,7 @@ Item {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: root.showName
                 width: Math.min(implicitWidth, col.width - 40 * root.s)
                 text: root.context ? root.context.userName : ""
                 elide: Text.ElideRight
@@ -125,7 +122,7 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !root.compact
+            visible: !root.compact && root.showName
             width: Math.min(implicitWidth, col.width)
             text: root.context ? root.context.userName : ""
             elide: Text.ElideRight
@@ -133,7 +130,7 @@ Item {
             font.family: Typography.uiChosen
             font.weight: Typography.wMedium
             font.pixelSize: Typography.title * root.s
-            opacity: root.restOpacity * root.around
+            opacity: root.restOpacity
         }
 
         LockField {
@@ -147,7 +144,8 @@ Item {
             edge: root.fieldEdge
             owner: root.owner
             onStep: (dir) => root.step(dir)
-            opacity: root.coreShown ? root.restOpacity : 0
+            opacity: root.restOpacity
+            accepted: root.accepted
         }
 
         // ── estado: dos líneas con su hueco siempre reservado ────────────────
@@ -155,7 +153,7 @@ Item {
             width: col.width
             // hasta dos líneas de mensaje (uno de PAM puede ser largo) y la de intentos: fijo
             height: Typography.body * 1.4 * 2 * root.s + Typography.caption * 1.6 * root.s
-            opacity: root.restOpacity * root.around
+            opacity: root.restOpacity
 
             Row {
                 id: msgRow

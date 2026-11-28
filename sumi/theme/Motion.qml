@@ -157,8 +157,12 @@ Singleton {
     readonly property int hoverCloseMs: 350
     readonly property int fsRevealMs: 350
 
-    // Tiempos propios del bloqueo: tampoco dependen de Global speed.
-    readonly property int lockVeil: 280
+    // Transiciones del bloqueo. Los topes y las esperas de abajo van en tiempo real.
+    readonly property int lockOpen: motion.off ? 0 : motion.dur(motion.still ? 165 : 300)
+    readonly property int lockClose: motion.off ? 0 : motion.dur(motion.still ? 110 : 160)
+    readonly property int lockDot: motion.off ? 0 : motion.dur(motion.still ? 80 : 115)
+    readonly property int lockShake: motion.still ? 0 : motion.dur(180)
+    readonly property int lockCheckDelay: 140
     readonly property int lockCalmMs: 10000
     readonly property int lockCalmFade: 600
     readonly property int lockCap: 900

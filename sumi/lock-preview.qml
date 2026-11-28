@@ -61,6 +61,8 @@ ShellRoot {
     property bool interactive: Quickshell.env("LOCK_PREVIEW_INTERACTIVE") === "1"
     property real scaleOverride: Number(Quickshell.env("LOCK_PREVIEW_SCALE") || 0)
     property string backdrop: Quickshell.env("LOCK_PREVIEW_BACKDROP") || Wallpaper.lockStillPath
+    readonly property string fetchCandidate: root.localPath(Settings.lockFetchImage)
+        || (Quickshell.env("HOME") + "/.config/fastfetch/fastfetchlogo/minimaru.png")
     readonly property bool liveData: Quickshell.env("LOCK_PREVIEW_DATA") === "live"
     readonly property bool escQuits: Quickshell.env("LOCK_PREVIEW_ESC_QUITS") === "1"
 
@@ -129,8 +131,7 @@ ShellRoot {
         /** `~/.face` si existe (se comprueba abajo); si no, la inicial. */
         property string avatarSource: ""
         /** Las mismas rutas que el lock real (Settings → Lock screen), con sus respaldos. */
-        property string fetchImageSource: root.localPath(Settings.lockFetchImage)
-            || (Quickshell.env("HOME") + "/.config/fastfetch/fastfetchlogo/minimaru.png")
+        property string fetchImageSource: ""
 
         // ── fase 15: lo que pinta el panel (el lock real lo reenviará en la 15D) ──
         /** El fetch pasa por el contexto (LK-09): aquí, de `SystemInfo`; `set fetch` lo finge. */
@@ -279,7 +280,7 @@ ShellRoot {
         return true;
     }
     function success() {
-        if (ctx.phase !== "locked") return false;
+        if (ctx.phase !== "locked" && ctx.phase !== "entering") return false;
         ctx.clearBuffer();
         root.beginPhase("leaving", false);
         return true;
@@ -333,6 +334,13 @@ ShellRoot {
             else if (code === 0) ctx.avatarSource = Quickshell.env("HOME") + "/.face";
         }
     }
+
+    Process {
+        id: fetchCheck
+        command: ["test", "-r", root.fetchCandidate]
+        onExited: (code) => ctx.fetchImageSource = code === 0 ? root.fetchCandidate : ""
+    }
+    onFetchCandidateChanged: if (!root.liveData) fetchCheck.running = true
 
     /** Ruta local absoluta, o "" (I-14): el mismo filtro que `LockSession.localPath`. */
     function localPath(p) {
@@ -532,7 +540,7 @@ ShellRoot {
                 Image {
                     anchors.fill: parent
                     visible: !(lockLoader.item && lockLoader.item.wantsOpaque)
-                    source: "file://" + Wallpaper.lockStillPath
+                    source: root.backdrop.length > 0 ? "file://" + root.backdrop : ""
                     sourceSize.width: 960
                     sourceSize.height: 540
                     fillMode: Image.PreserveAspectCrop
@@ -707,6 +715,7 @@ ShellRoot {
     Component.onCompleted: {
         SystemInfo.load();
         faceCheck.running = true;
+        if (!root.liveData) fetchCheck.running = true;
         islandProbe.running = true;
         if (root.liveData) liveOn.running = true;
         root.log({ ev: "ready", pid: Quickshell.processId, shown: root.shown, interactive: root.interactive, live: root.liveData });

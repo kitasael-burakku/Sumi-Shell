@@ -182,6 +182,12 @@ Singleton {
     property string lockEntry: Schema.def("lockEntry")
     property string lockPamService: Schema.def("lockPamService")
     property string lockFetchImage: Schema.def("lockFetchImage")
+    property string lockLayout: Schema.def("lockLayout")
+    property bool lockWeather: Schema.def("lockWeather")
+    property bool lockFetch: Schema.def("lockFetch")
+    property bool lockMusic: Schema.def("lockMusic")
+    property bool lockMetrics: Schema.def("lockMetrics")
+    property string lockNotifications: Schema.def("lockNotifications")
     property bool wallpaperVideoPreview: Schema.def("wallpaperVideoPreview")
     /** 10A: carpetas de la biblioteca (Theme → Wallpaper → Sources) y la de descargas. */
     property var wallpaperSources: Schema.def("wallpaperSources")

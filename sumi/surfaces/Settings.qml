@@ -7,6 +7,7 @@ import Quickshell.Hyprland
 import "../theme"
 import "../services"
 import "../components"
+import "../lock" as LockUi
 import "../lib/settings-schema.js" as Schema
 import "../lib/system-catalog.js" as SysCat
 import "../lib/surface-materials.js" as SurfaceMaterials
@@ -425,13 +426,24 @@ Surface {
                     { id: "recRememberMode", prop: "recRememberMode", kind: "toggle", name: "Remember the last mode", rec: true }
                 ] }
             ] },
-            // Fase 15H: el visualizador se retiró con el Lock nuevo (LOCK-D13); Preview abre la vista previa aparte.
             { id: "lock", title: "Lock screen", sections: [
-                { title: "Lock screen", key: "Lock screen", rows: [
+                { title: "Layout", key: "Lock layout", rows: [
+                    { id: "lockLayout", prop: "lockLayout", kind: "choice", name: "Layout",
+                      options: [{ label: "Panel", value: "panel" }, { label: "Minimal", value: "minimal" }] },
+                    { id: "lockWeather", prop: "lockWeather", kind: "toggle", name: "Weather", half: true, lockPanel: true },
+                    { id: "lockFetch", prop: "lockFetch", kind: "toggle", name: "System info", half: true, lockPanel: true },
+                    { id: "lockMusic", prop: "lockMusic", kind: "toggle", name: "Music", half: true, lockPanel: true },
+                    { id: "lockMetrics", prop: "lockMetrics", kind: "toggle", name: "System metrics", half: true, lockPanel: true },
+                    { id: "lockNotifications", prop: "lockNotifications", kind: "choice", name: "Notifications", lockPanel: true,
+                      options: [{ label: "Content", value: "content" }, { label: "Count only", value: "count" },
+                                { label: "Hidden", value: "hidden" }] },
+                    { id: "lockDemo", prop: "", kind: "lockDemo", name: "Live preview" }
+                ] },
+                { title: "Images", key: "Lock screen", rows: [
                     { id: "avatar", prop: "lockAvatar", kind: "path", name: "Avatar", round: true, placeholder: "" },
                     { id: "fetch", prop: "lockFetchImage", kind: "path", name: "Fetch image", round: false,
                       placeholder: Quickshell.env("HOME") + "/.config/fastfetch/fastfetchlogo/minimaru.png" },
-                    { id: "lockPreview", prop: "", kind: "action", name: "Preview lock screen", label: "Preview" }
+                    { id: "lockPreview", prop: "", kind: "action", name: "Full-screen preview", label: "Preview" }
                 ] },
                 // F5d (portabilidad, H-07): por dónde llega el bloqueo. Auto = logind si alguien lo atiende (hypridle con
                 // el helper de la shell, con hyprlock u otro), directo si nadie; la fila de abajo dice quién lo atiende.
@@ -1330,6 +1342,7 @@ Surface {
         return Math.round(BarEdge.span(along, Metrics.topGap * Settings.uiScale, root.barLengthHere, root.barLimit).len);
     }
     property var dockPreviewItem: null
+    property Item lockPreviewItem: null
 
     /** Acciones de fila (no ajustes): hoy sólo Random wallpaper, el mismo que R en Wallpaper List. */
     // ---- Sumi SDDM: Desktop tools → Login screen (2026-11-22) ------------------------------------------
@@ -2098,7 +2111,8 @@ Surface {
     // 13F: el Equalizer ya existe (System → Audio → Equalizer lleva al del Mixer); nada previsto.
     readonly property var planned: []
     function visibleRows(rows) {
-        return rows.filter(r => r.id !== "openEq" || Equalizer.supported);
+        return rows.filter(r => (r.id !== "openEq" || Equalizer.supported)
+            && (r.lockPanel !== true || Settings.lockLayout === "panel"));
     }
 
     /** Todo lo que se puede buscar: filas y páginas de la tabla, y lo previsto. */
@@ -3474,6 +3488,7 @@ Surface {
         if (r.id === "envStatus") return root.envStatusCaption;
         if (r.id === "envRefresh") return "Checks programs, services and files again · starts or changes nothing";
         if (r.id === "exportSettings") return "Your shell preferences · no keys, account, monitors or integrations";
+        if (r.id === "lockDemo") return "Sample data";
         if (r.id === "lockPreview") return "With your real data, without locking anything · Esc closes";
         if (r.id === "exportAll") return "The same, plus the presets you made";
         if (r.id === "exportResult") {
@@ -4243,6 +4258,8 @@ Surface {
             root.setBarPref("barLength", Math.max(root.barLimitPct, Math.min(BarEdge.MAX_PCT, from + dir * BarEdge.STEP_PCT)));
         } else if (r.kind === "dockPreview") {
             if (dir === 0 && root.dockPreviewItem) root.dockPreviewItem.play();
+        } else if (r.kind === "lockDemo") {
+            if (root.lockPreviewItem) root.lockPreviewItem.adjust(dir);
         } else if (r.kind === "link") {
             if (dir === 0) root.openLink(r.target, r.key);
         } else if (r.kind === "goto") {
@@ -5099,7 +5116,7 @@ Surface {
                                 // la que se estira (sin pareja) va como un interruptor: nombre a la izquierda, pastillas a la
                                 // derecha (SettingRow la apila sola si el control pasa del 46 % de la fila)
                                 vertical: rowItem.modelData.kind === "choice" && rowItem.modelData.stretch !== true
-                                    || rowItem.modelData.kind === "sddmPreview"
+                                    || rowItem.modelData.kind === "sddmPreview" || rowItem.modelData.kind === "lockDemo"
                                 captionEssential: rowItem.modelData.kind !== "choice" && rowItem.modelData.kind !== "toggle"
                                     || (rowItem.modelData.id === "recEncoder" && Settings.recPreset !== "custom")
                                 onHelpRequested: { root.kbIndex = rowItem.flatIndex; root.zone = "content"; root.forceActiveFocus(); }
@@ -5161,6 +5178,7 @@ Surface {
                                         : rowItem.modelData.kind === "barEdge" ? barEdgeC
                                         : rowItem.modelData.kind === "barLength" ? barLengthC
                                         : rowItem.modelData.kind === "dockPreview" ? dockPreviewC
+                                        : rowItem.modelData.kind === "lockDemo" ? lockDemoC
                                         : rowItem.modelData.kind === "link" ? linkC
                                         : rowItem.modelData.kind === "goto" ? gotoC
                                         : rowItem.modelData.kind === "info" ? infoC
@@ -5703,6 +5721,18 @@ Surface {
                                             glyph: dp.playing ? "" : "play"
                                             onTriggered: { root.kbIndex = rowItem.flatIndex; dp.play(); }
                                         }
+                                    }
+                                }
+                                Component {
+                                    id: lockDemoC
+                                    LockUi.LockPreviewPane {
+                                        id: preview
+                                        s: root.s
+                                        availableWidth: rowItem.controlMaxWidth
+                                        focused: rowItem.focused
+                                        onInteracted: { root.kbIndex = rowItem.flatIndex; root.zone = "content"; }
+                                        Component.onCompleted: root.lockPreviewItem = preview
+                                        Component.onDestruction: if (root.lockPreviewItem === preview) root.lockPreviewItem = null
                                     }
                                 }
                                 Component {

@@ -193,6 +193,18 @@ var CATALOG = [
       def: "", section: "Lock screen", owner: "shell", apply: "immediate", export: false },
     { id: "shell.lock.fetchImage", prop: "lockFetchImage", legacy: "lockFetchImage", type: "path",
       def: "", section: "Lock screen", owner: "shell", apply: "immediate", export: false },
+    { id: "shell.lock.layout", prop: "lockLayout", type: "enum",
+      def: "panel", values: ["panel", "minimal"], section: "Lock layout", owner: "shell", apply: "immediate" },
+    { id: "shell.lock.weather", prop: "lockWeather", type: "bool",
+      def: true, section: "Lock layout", owner: "shell", apply: "immediate" },
+    { id: "shell.lock.fetch", prop: "lockFetch", type: "bool",
+      def: true, section: "Lock layout", owner: "shell", apply: "immediate" },
+    { id: "shell.lock.music", prop: "lockMusic", type: "bool",
+      def: true, section: "Lock layout", owner: "shell", apply: "immediate" },
+    { id: "shell.lock.metrics", prop: "lockMetrics", type: "bool",
+      def: true, section: "Lock layout", owner: "shell", apply: "immediate" },
+    { id: "shell.lock.notifications", prop: "lockNotifications", type: "enum",
+      def: "content", values: ["content", "count", "hidden"], section: "Lock layout", owner: "shell", apply: "immediate" },
     /**
      * Portabilidad F5d (2026-10-10; H-07): cómo pide la shell el bloqueo (botón Lock, IPC `lock`, menú de energía).
      *   auto    por logind (`loginctl lock-session`) si alguien lo atiende (hypridle con el helper de la shell, con

@@ -29,13 +29,14 @@ Rectangle {
     property real s: 1
     property var notifs: ({ state: "ok", count: 0, groups: [] })
     property bool ownScroll: true
+    property bool countOnly: false
 
     /** Una lista JS o la que llega de QVariant (no pasa `Array.isArray`): siempre un Array. */
     function list(x) { return x && x.length !== undefined ? Array.prototype.slice.call(x) : []; }
     /** Lo que se enseña (puede ir por detrás de `notifs` mientras se lee). */
     property var shown: root.notifs
     property bool pending: false
-    readonly property var groups: root.shown ? root.list(root.shown.groups) : []
+    readonly property var groups: !root.countOnly && root.shown ? root.list(root.shown.groups) : []
     readonly property int count: root.notifs && typeof root.notifs.count === "number" ? root.notifs.count : 0
     readonly property bool unavailable: !root.notifs || root.notifs.state === "unavailable"
 
@@ -51,6 +52,7 @@ Rectangle {
     readonly property bool anyOpen: Object.keys(root.openGroups).some(function (k) { return root.openGroups[k]; })
         || Object.keys(root.openItems).some(function (k) { return root.openItems[k]; })
     readonly property bool reading: root.holdsFocus() || root.anyOpen || flick.contentY > 1
+    onCountOnlyChanged: if (root.countOnly) { root.openGroups = {}; root.openItems = {}; root.adopt(); }
     onNotifsChanged: {
         if (!root.reading || root.unavailable) root.adopt();
         else root.pending = true;
@@ -74,7 +76,8 @@ Rectangle {
 
     radius: Metrics.rMd * root.s
     color: Theme.tileBg
-    implicitHeight: header.height + Metrics.sp3 * 3 * root.s + body.implicitHeight
+    implicitHeight: header.height + Metrics.sp3 * 2 * root.s
+        + (root.countOnly ? 0 : Metrics.sp3 * root.s + body.implicitHeight)
 
     Accessible.role: Accessible.Grouping
     Accessible.name: "Notifications, " + root.count
@@ -104,7 +107,7 @@ Rectangle {
         Rectangle {
             id: badge
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.count > 0
+            visible: root.countOnly || root.count > 0
             width: Math.max(height, countText.implicitWidth + 10 * root.s)
             height: 18 * root.s
             radius: Metrics.pill(height)
@@ -128,17 +131,18 @@ Rectangle {
         anchors.rightMargin: Metrics.sp2 * root.s
         anchors.verticalCenter: header.verticalCenter
         s: root.s
-        visible: root.pending
+        visible: !root.countOnly && root.pending
         text: "New notifications"
         onActivated: { root.adopt(); root.interacted(); }
     }
 
     Flickable {
         id: flick
+        visible: !root.countOnly
         x: Metrics.sp3 * root.s
         y: header.y + header.height + Metrics.sp2 * root.s
         width: root.width - Metrics.sp3 * 2 * root.s
-        height: root.ownScroll ? root.height - y - Metrics.sp3 * root.s : body.implicitHeight
+        height: root.ownScroll ? Math.max(0, root.height - y - Metrics.sp3 * root.s) : body.implicitHeight
         contentHeight: body.implicitHeight
         clip: root.ownScroll
         interactive: root.ownScroll && contentHeight > height

@@ -4,21 +4,8 @@ import "../services"
 import "../theme"
 
 /**
- * Una pantalla del Lock del rediseño (fase 15, futurelocksurface §8–§10). Sustituirá a `LockSurface`
- * en la 15G-2: tiene su MISMA interfaz (`context`, `s`, `screenName`, `hero`, `focused`,
- * `backdropSource`, `home`, `wantsOpaque`, `focusField()`, avisos `enterDone`/`leaveDone`), así que
- * el cambio en `LockSession` es una línea. Hasta entonces sólo la monta la preview.
- *
- * Recibe el CONTRATO y nada más (ARQUITECTURA §4 regla 3): no importa `Quickshell.Wayland` ni
- * `Quickshell.Services.Pam` (I-6). Composición:
- *   · la pantalla con el foco (`hero`): el panel (`LockBoard`) y, fuera de él y debajo, centrada, la
- *     energía con su propio mensaje de fallo (LOCK-D15, LK-07; debajo desde el 2026-10-01);
- *   · las demás: fondo, hora y fecha (LOCK-D19);
- *   · en calma: fondo, hora y fecha en todas (LOCK-D10).
- *
- * Entrada y salida: un popup desde el centro sobre la pantalla desenfocada (2026-10-01; antes el viaje
- * desde el island de la 15F, LOCK-D11). Avisan de que terminaron para que la sesión avance (los topes
- * siguen en `LockSession`).
+ * Composición visual compartida por el bloqueo y sus vistas previas. Recibe la fase
+ * y el estado por el contexto, y sólo reporta cuándo termina cada transición.
  */
 Item {
     id: root
@@ -32,6 +19,7 @@ Item {
     property real backdropDim: 0.62
     property real backdropBrightness: -0.25
     property bool focused: false
+    property bool interactive: true
     /** Geometría del island (la usa la coreografía de la 15F). */
     property var home: ({ x: width / 2 - 72, y: 8, w: 144, h: 34, r: 16 })
 
@@ -43,31 +31,14 @@ Item {
     readonly property bool leaving: root.phase === "leaving"
     readonly property bool wantsOpaque: root.phase === "locked" || (root.instant && !root.leaving)
 
-    // ── coreografía: POPUP (2026-10-01, pedido del usuario; sustituye al viaje desde el island de la 15F) ──
-    /**
-     * Entrada: el fondo (la pantalla desenfocada) se funde y el panel aparece en el centro creciendo de
-     * dentro hacia fuera — de `popFrom` a 1, con un rebote corto — mientras se hace opaco; la energía y las
-     * demás pantallas siguen al mismo `pop`. Salida: al revés, el panel se recoge hacia el centro y después
-     * se va el fondo. Ya no sale de la isla ni de la barra: no hay réplica que viaje ni geometría que medir.
-     *
-     *   · Normal: `Motion.morph` (420 ms) con OutBack suave; Reduced: `Motion.calmMs` sin rebote (calma, no
-     *     apaga); Off: 0.
-     *   · Instantánea (suspensión, recuperación, recarga): todo en su sitio desde el primer fotograma.
-     *   · Empieza cuando el compositor CONFIRMA el bloqueo (`secure`, LK-10), no por la fase interna; si no
-     *     llega, el tope de la sesión (`lockCap`) pasa a `locked` y aquí se salta al estado final.
-     *   · El campo existe y tiene el foco desde el principio: lo tecleado durante la entrada se conserva.
-     *   · Nunca desbloquea nada: sólo avisa de que acabó (`enterDone` / `leaveDone`).
-     *
-     * `home` sigue en la interfaz (LockSession lo pasa) pero ya no se usa.
-     */
-    readonly property bool animatedEntry: root.phase === "entering" && !root.instant
-    readonly property int popMs: Motion.still ? Motion.calmMs : Motion.morph
-    readonly property int veilMs: Motion.still ? Motion.calmMs : Motion.lockVeil
-    /** Escala de la que nace el panel. */
-    readonly property real popFrom: 0.86
+    // El centro aparece primero. Cada lateral entra hacia su sitio y sale hacia el centro.
+    // La fase y el foco pertenecen al bloqueo, con independencia del movimiento.
+    readonly property bool animatedEntry: root.phase === "entering" && !root.instant && !Motion.off
     property real veil: root.animatedEntry ? 0 : 1
-    /** 0 = recogido en el centro, 1 = en su sitio. */
-    property real pop: root.animatedEntry ? 0 : 1
+    property real core: root.animatedEntry ? 0 : 1
+    property real details: root.animatedEntry ? 0 : 1
+    readonly property int detailDelay: Motion.still ? 0 : Math.round(Motion.lockOpen * 0.20)
+    readonly property int coreMs: Math.round(Motion.lockOpen * (Motion.still ? 1 : 0.68))
     property bool started: false
     property bool enterReported: false
     property bool leaveReported: false
@@ -75,53 +46,63 @@ Item {
 
     function finalState() {
         entryAnim.stop();
-        root.veil = 1; root.pop = 1;
+        root.veil = 1;
+        root.core = 1;
+        root.details = 1;
     }
     function maybeStart() {
-        if (root.started || !root.animatedEntry || !root.secureOk)
+        if (root.started || root.phase !== "entering" || !root.secureOk)
             return;
         root.started = true;
-        entryAnim.start();
+        if (root.animatedEntry) {
+            entryAnim.start();
+        } else {
+            root.finalState();
+            root.reportEnter();
+        }
     }
-    /**
-     * El campo tiene el foco DESDE EL PRINCIPIO (§9 «Entrada animada: campo disponible; conservar los
-     * primeros caracteres»): si la superficie nace con la ventana ya activa, nadie más se lo daría.
-     */
     Component.onCompleted: {
         Qt.callLater(root.focusField);
-        if (root.animatedEntry) Qt.callLater(root.maybeStart);
+        Qt.callLater(root.maybeStart);
     }
     onHeroChanged: if (root.hero && root.focused) Qt.callLater(root.focusField)
-    onSecureOkChanged: if (root.animatedEntry) root.maybeStart()
+    onSecureOkChanged: root.maybeStart()
 
     onPhaseChanged: {
         if (root.phase === "leaving") {
             entryAnim.stop();
-            exitAnim.start();
+            if (Motion.off)
+                root.reportLeave();
+            else
+                exitAnim.start();
         } else if (root.phase === "locked") {
-            // el tope pudo llegar antes de asentarse: estado final
-            if (!root.enterReported || entryAnim.running) root.finalState();
+            root.finalState();
         }
     }
 
     ParallelAnimation {
         id: entryAnim
-        NumberAnimation { target: root; property: "veil"; to: 1; duration: root.veilMs; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "veil"; to: 1; duration: Motion.lockOpen; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "core"; to: 1; duration: root.coreMs; easing.type: Easing.OutCubic }
         SequentialAnimation {
-            // el fondo empieza a velar primero: el panel aparece sobre algo ya desenfocado
-            PauseAnimation { duration: Motion.still ? 0 : Motion.vanish }
+            PauseAnimation { duration: root.detailDelay }
             NumberAnimation {
-                target: root; property: "pop"; to: 1; duration: root.popMs
-                easing.type: Motion.still ? Easing.OutCubic : Easing.OutBack
-                easing.overshoot: 1.1
+                target: root; property: "details"; to: 1
+                duration: Math.max(0, Motion.lockOpen - root.detailDelay)
+                easing.type: Easing.OutCubic
             }
         }
         onFinished: root.reportEnter()
     }
-    SequentialAnimation {
+    ParallelAnimation {
         id: exitAnim
-        NumberAnimation { target: root; property: "pop"; to: 0; duration: Motion.still ? Motion.calmMs : Motion.fast; easing.type: Easing.InCubic }
-        NumberAnimation { target: root; property: "veil"; to: 0; duration: Motion.still ? Motion.calmMs : Motion.fast; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "veil"; to: 0; duration: Motion.lockClose; easing.type: Easing.InCubic }
+        NumberAnimation { target: root; property: "core"; to: 0; duration: Motion.lockClose; easing.type: Easing.InCubic }
+        NumberAnimation {
+            target: root; property: "details"; to: 0
+            duration: Math.round(Motion.lockClose * (Motion.still ? 1 : 0.85))
+            easing.type: Easing.InCubic
+        }
         onFinished: root.reportLeave()
     }
     function reportEnter() {
@@ -165,11 +146,11 @@ Item {
         if (root.leaving) return Theme.ok;
         if (root.failFlash) return Theme.danger;
         if (root.authState === "error") return Theme.warn;
-        return root.focused ? Theme.selBorder : Theme.glassBorder;
+        return root.focused ? Theme.focusRing : Theme.hair;
     }
 
     function focusField() {
-        if (root.hero)
+        if (root.hero && root.interactive && !root.leaving)
             board.focusField();
     }
 
@@ -180,7 +161,11 @@ Item {
      * que despierta es texto y se conserva, y nunca activa un botón invisible (un Enter sobre la energía,
      * un Espacio sobre el transporte).
      */
-    onCalmChanged: if (root.calm && root.hero) board.focusField()
+    onCalmChanged: if (root.calm) root.focusField()
+    onAuthStateChanged: {
+        if (["failed", "error", "prompt", "lockedOut"].indexOf(root.authState) >= 0)
+            Qt.callLater(root.focusField);
+    }
     /** Un hold en curso suspende la calma (§9). */
     readonly property bool holding: powerCorner.holding
     onHoldingChanged: if (root.context && root.context.setHolding) root.context.setHolding(root.holding)
@@ -309,8 +294,9 @@ Item {
      * de lo escrito (no se pierde). Enter y Espacio los consume el botón enfocado.
      */
     Keys.onPressed: (e) => {
-        if (!root.hero || !root.context)
+        if (!root.hero || !root.interactive || !root.context)
             return;
+        if (root.leaving) { e.accepted = true; return; }
         const mods = e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier);
         if (e.key === Qt.Key_Backtab || (e.key === Qt.Key_Tab && (e.modifiers & Qt.ShiftModifier))) {
             root.stepFocus(-1); e.accepted = true;
@@ -362,13 +348,11 @@ Item {
         calm: root.calm
         lockoutText: root.lockoutText
         fieldEdge: root.fieldEdge
-        owner: root.hero && root.focused
-        around: 1
-        coreShown: true
-        // el popup: de dentro hacia fuera, desde el centro del panel
-        transformOrigin: Item.Center
-        scale: root.popFrom + (1 - root.popFrom) * root.pop
-        opacity: Math.min(1, root.pop * 1.4)
+        owner: root.interactive && root.hero && root.focused
+        accepted: root.leaving
+        centerProgress: root.core
+        around: root.details
+        sideTravel: Motion.still ? 0 : Metrics.sp5 * root.s * (1 - root.details)
         onStep: (dir) => root.stepFocus(dir)
         // el control enfocado se fue con la lista nueva: al primero que quede ahí, o al campo (§8)
         onInteracted: root.activity()
@@ -381,14 +365,12 @@ Item {
     }
     readonly property bool narrow: board.narrow
 
-    // pantallas sin foco: fondo, hora y fecha (con el mismo popup)
+    // pantallas sin foco: fondo, hora y fecha
     Column {
         visible: !root.hero
         anchors.centerIn: parent
         spacing: Metrics.sp2 * root.s
-        transformOrigin: Item.Center
-        scale: root.popFrom + (1 - root.popFrom) * root.pop
-        opacity: Math.min(1, root.pop * 1.4)
+        opacity: root.core
         Text {
             id: nhClock
             anchors.horizontalCenter: parent.horizontalCenter
@@ -418,10 +400,10 @@ Item {
         spacing: Metrics.sp1 * root.s
         visible: root.hero
         // con el popup, y fuera en calma
-        opacity: root.calm ? 0 : Math.min(1, root.pop * 1.4)
+        opacity: root.calm ? 0 : root.details
         Behavior on opacity {
-            enabled: root.calm || !entryAnim.running
-            NumberAnimation { duration: root.calm ? Motion.lockCalmFade : Motion.fast; easing.type: Easing.InOutCubic }
+            enabled: !entryAnim.running && !exitAnim.running
+            NumberAnimation { duration: root.calm && !Motion.off ? Motion.lockCalmFade : Motion.fast; easing.type: Easing.InOutCubic }
         }
 
         Text {

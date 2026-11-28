@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../components"
+import "../services"
 import "../theme"
 
 /**
@@ -33,13 +34,23 @@ Item {
     property color fieldEdge: Theme.glassBorder
     /** La pantalla que manda con el teclado: su campo refleja el buffer (LK-02). */
     property bool owner: false
+    property bool accepted: false
+    readonly property bool minimal: Settings.lockLayout === "minimal"
+    readonly property bool showWeather: !root.minimal && Settings.lockWeather
+    readonly property bool showFetch: !root.minimal && Settings.lockFetch
+    readonly property bool showMusic: !root.minimal && Settings.lockMusic
+    readonly property bool showMetrics: !root.minimal && Settings.lockMetrics
+    readonly property bool showNotifs: !root.minimal && Settings.lockNotifications !== "hidden"
+    readonly property bool countOnly: Settings.lockNotifications === "count"
+    readonly property bool hasModules: root.showWeather || root.showFetch || root.showMusic
+        || root.showMetrics || root.showNotifs
     /** Tab / Mayús+Tab desde el campo; el recorrido lo lleva la superficie. */
     signal step(int dir)
     /** Al traer la lista nueva desapareció el control enfocado de las notificaciones (15D). */
     signal notifsFocusLost()
     /** Expandir, desplazar o traer notificaciones: actividad para la calma (15E). */
     signal interacted()
-    function notifsRoot() { return root.narrow ? slimNotifs : wideNotifs; }
+    function notifsRoot() { return root.showNotifs ? (root.narrow ? slimNotifs : wideNotifs) : null; }
 
     /**
      * Las secciones del recorrido de teclado, en su orden (futurelocksurface §9 «Teclado»): campo y
@@ -51,22 +62,27 @@ Item {
             : [auth.item, wideMusic, widePrivacy, wideNotifs];
     }
 
+    // Un plano un paso por encima del velo, con el alfa del material elegido.
+    readonly property color panelFill: Qt.alpha(Theme.surfaceContainerLow, Theme.materialDeep.a)
+    readonly property color panelEdge: Qt.alpha(Theme.fg, Math.max(Theme.hair.a, Theme.materialBorder.a))
     readonly property real pad: Metrics.lockBoardPad * root.s
     readonly property real gap: Metrics.sp4 * root.s
     readonly property real needW: (Metrics.lockColLeftMin + Metrics.lockColCenterMin + Metrics.lockColRightMin
                                    + 2 * Metrics.sp4 + 2 * Metrics.lockBoardPad) * root.s
     readonly property real needH: 460 * root.s
-    readonly property bool narrow: root.availW < root.needW || root.availH < root.needH
+    readonly property bool narrow: !root.hasModules || root.availW < root.needW || root.availH < root.needH
+    onNarrowChanged: if (root.owner && !root.accepted) Qt.callLater(root.focusField)
     /** La calma, animada una vez (15F: sin Behavior por pieza). */
     property real sideOpacity: root.calm ? 0 : 1
     Behavior on sideOpacity { NumberAnimation { duration: root.fadeMs; easing.type: Easing.InOutCubic } }
     /** El panel y los widgets alrededor del núcleo al entrar y salir (15F, LOCK-D11). */
     property real around: 1
-    property bool coreShown: true
+    property real centerProgress: 1
+    property real sideTravel: 0
     function authItem() { return root.narrow ? slimAuthLoader.item : auth.item; }
     function clockItem() { const a = root.authItem(); return a ? a.clockItem : null; }
     function fieldItem() { const a = root.authItem(); return a ? a.fieldItem : null; }
-    readonly property int fadeMs: root.calm ? Motion.lockCalmFade : Motion.fast
+    readonly property int fadeMs: root.calm && !Motion.off ? Motion.lockCalmFade : Motion.fast
 
     readonly property real boardW: Math.min(Metrics.lockBoardMaxW * root.s, root.availW)
     readonly property real boardH: Math.min(Metrics.lockBoardH * root.s, root.availH)
@@ -77,7 +93,7 @@ Item {
     }
 
     width: root.narrow ? Math.min(Metrics.lockNarrowW * root.s, root.availW) : root.boardW
-    height: root.narrow ? root.availH : root.boardH
+    height: !root.hasModules ? Math.min(root.availH, slimTop.height) : root.narrow ? root.availH : root.boardH
 
     readonly property var ctxData: root.context ? root.context : ({})
 
@@ -90,7 +106,8 @@ Item {
         Glass {
             anchors.fill: parent
             s: root.s
-            deep: true
+            color: root.panelFill
+            edge: root.panelEdge
             // el bloqueo toma SÓLO la geometría del estilo (ADR-34, F7): radios por los tokens; borde, velo y letra
             // ELEGIDA de siempre (`Typography.uiChosen` en todo lock/, no la mono de terminal), cursor de siempre, y
             // nunca marcas ni efectos
@@ -106,6 +123,8 @@ Item {
 
             // ── izquierda ────────────────────────────────────────────────
             ColumnLayout {
+                enabled: root.around > 0 && !root.accepted
+                transform: Translate { x: root.sideTravel }
                 Layout.preferredWidth: Metrics.lockColLeft * root.s
                 Layout.minimumWidth: Metrics.lockColLeftMin * root.s
                 Layout.fillHeight: true
@@ -113,13 +132,14 @@ Item {
                 opacity: root.sideOpacity * root.around
 
                 WeatherSummary {
+                    visible: root.showWeather
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight
                     s: root.s
                     weather: root.ctxData.weather
                 }
                 LockFetch {
-                    id: wideFetch
+                    visible: root.showFetch
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     context: root.context
@@ -131,12 +151,14 @@ Item {
                 }
                 LockMusic {
                     id: wideMusic
-                    paused: root.calm
+                    visible: root.showMusic
+                    paused: root.calm || !visible || root.accepted
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight
                     context: root.context
                     s: root.s
                 }
+                Item { visible: !root.showFetch; Layout.fillHeight: true }
             }
 
             // ── centro ───────────────────────────────────────────────────
@@ -151,6 +173,7 @@ Item {
                     anchors.centerIn: parent
                     width: parent.width
                     active: !root.narrow
+                    opacity: root.centerProgress
                     sourceComponent: LockAuthColumn {
                         context: root.context
                         s: root.s
@@ -159,8 +182,7 @@ Item {
                         calm: root.calm
                         lockoutText: root.lockoutText
                         fieldEdge: root.fieldEdge
-                        around: root.around
-                        coreShown: root.coreShown
+                        accepted: root.accepted
                         owner: root.owner && !root.narrow
                         onStep: (dir) => root.step(dir)
                     }
@@ -169,6 +191,8 @@ Item {
 
             // ── derecha ──────────────────────────────────────────────────
             ColumnLayout {
+                enabled: root.around > 0 && !root.accepted
+                transform: Translate { x: -root.sideTravel }
                 Layout.preferredWidth: Metrics.lockColRight * root.s
                 Layout.minimumWidth: Metrics.lockColRightMin * root.s
                 Layout.fillHeight: true
@@ -188,6 +212,7 @@ Item {
                     }
                 }
                 MetricGrid {
+                    visible: root.showMetrics
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight
                     s: root.s
@@ -195,13 +220,16 @@ Item {
                 }
                 LockNotifications {
                     id: wideNotifs
+                    visible: root.showNotifs
+                    countOnly: root.countOnly
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Layout.fillHeight: !root.countOnly
                     s: root.s
                     notifs: root.ctxData.notifs
                     ownScroll: true
                     onFocusLost: root.notifsFocusLost(); onInteracted: root.interacted()
                 }
+                Item { visible: !root.showNotifs || root.countOnly; Layout.fillHeight: true }
             }
         }
     }
@@ -218,7 +246,8 @@ Item {
             width: parent.width
             height: (slimAuthLoader.item ? slimAuthLoader.item.implicitHeight : 0) + root.pad * 2
             s: root.s
-            deep: true
+            color: root.panelFill
+            edge: root.panelEdge
             // el bloqueo toma SÓLO la geometría del estilo (ADR-34, F7): ver arriba
             geometryOnly: true
             radius: Metrics.openCorner * root.s
@@ -230,16 +259,17 @@ Item {
             y: root.pad
             width: parent.width - root.pad * 2
             active: root.narrow
+            opacity: root.centerProgress
             sourceComponent: LockAuthColumn {
                 context: root.context
                 s: root.s
-                compact: true
+                compact: !root.minimal || root.availH < 430 * root.s
+                showName: !root.minimal
                 focused: root.focused
                 calm: root.calm
                 lockoutText: root.lockoutText
                 fieldEdge: root.fieldEdge
-                around: root.around
-                coreShown: root.coreShown
+                accepted: root.accepted
                 owner: root.owner && root.narrow
                 onStep: (dir) => root.step(dir)
             }
@@ -256,6 +286,9 @@ Item {
 
         Flickable {
             id: slimFlick
+            visible: root.hasModules
+            enabled: root.around > 0 && !root.accepted
+            transform: Translate { y: -root.sideTravel }
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: slimTop.bottom
@@ -271,13 +304,13 @@ Item {
                 width: slimFlick.width
                 spacing: Metrics.sp2 * root.s
 
-                WeatherSummary { width: parent.width; height: implicitHeight; s: root.s; weather: root.ctxData.weather }
-                LockFetch { width: parent.width; height: implicitHeight; context: root.context; s: root.s; vertical: false }
-                LockMusic { id: slimMusic; paused: root.calm; width: parent.width; height: implicitHeight; context: root.context; s: root.s }
-                MetricGrid { width: parent.width; height: implicitHeight; s: root.s; metrics: root.ctxData.metrics }
-                LockNotifications { id: slimNotifs; width: parent.width; height: implicitHeight; s: root.s; notifs: root.ctxData.notifs; ownScroll: false; onFocusLost: root.notifsFocusLost(); onInteracted: root.interacted() }
+                WeatherSummary { visible: root.showWeather; width: parent.width; height: implicitHeight; s: root.s; weather: root.ctxData.weather }
+                LockFetch { visible: root.showFetch; width: parent.width; height: implicitHeight; context: root.context; s: root.s; vertical: false }
+                LockMusic { id: slimMusic; visible: root.showMusic; paused: root.calm || !visible || root.accepted; width: parent.width; height: implicitHeight; context: root.context; s: root.s }
+                MetricGrid { visible: root.showMetrics; width: parent.width; height: implicitHeight; s: root.s; metrics: root.ctxData.metrics }
+                LockNotifications { id: slimNotifs; visible: root.showNotifs; countOnly: root.countOnly; width: parent.width; height: implicitHeight; s: root.s; notifs: root.ctxData.notifs; ownScroll: false; onFocusLost: root.notifsFocusLost(); onInteracted: root.interacted() }
             }
         }
-        ScrollHint { view: slimFlick; s: root.s; opacity: root.sideOpacity * root.around }
+        ScrollHint { visible: root.hasModules; view: slimFlick; s: root.s; opacity: root.sideOpacity * root.around }
     }
 }
