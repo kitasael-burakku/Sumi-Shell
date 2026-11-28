@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import "../components"
 import "../services"
 import "../theme"
@@ -16,10 +17,13 @@ Item {
     property bool hero: true
     property string backdropSource: ""
     property int backdropGeneration: 0
-    property real backdropDim: 0.62
-    property real backdropBrightness: -0.25
+    /** −1 = el velo neutro según el tema (LockBackdrop); la vista previa puede fijarlo. */
+    property real backdropDim: -1
+    property real backdropBrightness: 0
     property bool focused: false
     property bool interactive: true
+    /** La vista previa de Settings puede fijar el estilo; vacío = Settings → Animations → Lock style. */
+    property string style: ""
     /** Geometría del island (la usa la coreografía de la 15F). */
     property var home: ({ x: width / 2 - 72, y: 8, w: 144, h: 34, r: 16 })
 
@@ -31,30 +35,65 @@ Item {
     readonly property bool leaving: root.phase === "leaving"
     readonly property bool wantsOpaque: root.phase === "locked" || (root.instant && !root.leaving)
 
-    // El centro aparece primero. Cada lateral entra hacia su sitio y sale hacia el centro.
-    // La fase y el foco pertenecen al bloqueo, con independencia del movimiento.
+    /**
+     * Entrada y salida (2026-11-28, Settings → Animations → Lock style):
+     *   · Sumi: la coreografía propia (reloj y campo primero; cada lateral entra hacia su sitio y sale hacia el centro).
+     *   · Un estilo de ventana (el del Window style o uno fijo): el panel abre como una ventana flotante con
+     *     theme/Reveal y theme/RevealEffect; después entran reloj y campo, y por último los laterales y la energía.
+     *     Al salir, el estilo al revés con el contenido dentro.
+     * Antes de salir, un pulso de éxito corto (`Motion.lockAccept`). El fondo se desenfoca al entrar (LockBackdrop
+     * `focus`). La fase y el foco pertenecen al bloqueo, con independencia del movimiento.
+     */
+    readonly property string styleName: root.style.length > 0 ? Motion.resolveLockStyle(root.style) : Motion.lockStyle
+    readonly property bool sumiStyle: root.styleName === "sumi"
+    readonly property int openMs: Motion.lockOpenFor(root.styleName)
+    readonly property int closeMs: Motion.lockCloseFor(root.styleName)
     readonly property bool animatedEntry: root.phase === "entering" && !root.instant && !Motion.off
     property real veil: root.animatedEntry ? 0 : 1
     property real core: root.animatedEntry ? 0 : 1
     property real details: root.animatedEntry ? 0 : 1
-    readonly property int detailDelay: Motion.still ? 0 : Math.round(Motion.lockOpen * 0.20)
-    readonly property int coreMs: Math.round(Motion.lockOpen * (Motion.still ? 1 : 0.68))
+    // Sumi
+    readonly property int detailDelay: Motion.still ? 0 : Math.round(root.openMs * 0.20)
+    readonly property int coreMs: Math.round(root.openMs * (Motion.still ? 1 : 0.68))
+    // Estilo de ventana: el contenido entra cuando la forma ya se lee (un tercio de su apertura)
+    readonly property int coreDelay: root.sumiStyle ? 0 : Math.round(root.openMs * (Motion.still ? 0.2 : 0.35))
+    readonly property int veilMs: root.sumiStyle ? root.openMs : Math.max(root.openMs, Motion.lockOpen)
     property bool started: false
     property bool enterReported: false
     property bool leaveReported: false
     readonly property bool secureOk: !root.context || root.context.secure !== false
+
+    /** El panel con un estilo de ventana. Con Sumi no se usa (queda abierto y quieto). */
+    property bool panelShown: !root.animatedEntry
+    Reveal {
+        id: panelRv
+        style: root.sumiStyle ? "minimalist" : root.styleName
+        s: root.s
+        animated: !root.sumiStyle
+        shown: root.panelShown
+    }
+    readonly property bool panelMoving: !root.sumiStyle && panelRv.moving
 
     function finalState() {
         entryAnim.stop();
         root.veil = 1;
         root.core = 1;
         root.details = 1;
+        root.panelShown = true;
+        panelRv.settle();
     }
     function maybeStart() {
         if (root.started || root.phase !== "entering" || !root.secureOk)
             return;
+        // El muelle de Reveal (Minimalist, Expressive) completa después que esta superficie cuando la crea un Loader:
+        // abrirlo antes lo hacía saltar a 1 sin animar (medido en banco, 2026-11-28).
+        if (!root.sumiStyle && !panelRv.spring.ready && root.animatedEntry) {
+            Qt.callLater(root.maybeStart);
+            return;
+        }
         root.started = true;
         if (root.animatedEntry) {
+            root.panelShown = true;
             entryAnim.start();
         } else {
             root.finalState();
@@ -71,10 +110,12 @@ Item {
     onPhaseChanged: {
         if (root.phase === "leaving") {
             entryAnim.stop();
-            if (Motion.off)
+            if (Motion.off) {
                 root.reportLeave();
-            else
+            } else {
+                // PAM pudo acabar a mitad de la entrada: todo sale desde donde esté (Reveal invierte sin saltos).
                 exitAnim.start();
+            }
         } else if (root.phase === "locked") {
             root.finalState();
         }
@@ -82,26 +123,45 @@ Item {
 
     ParallelAnimation {
         id: entryAnim
-        NumberAnimation { target: root; property: "veil"; to: 1; duration: Motion.lockOpen; easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "core"; to: 1; duration: root.coreMs; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "veil"; to: 1; duration: root.veilMs; easing.type: Easing.OutCubic }
         SequentialAnimation {
-            PauseAnimation { duration: root.detailDelay }
+            PauseAnimation { duration: root.coreDelay }
             NumberAnimation {
-                target: root; property: "details"; to: 1
-                duration: Math.max(0, Motion.lockOpen - root.detailDelay)
+                target: root; property: "core"; to: 1
+                duration: root.sumiStyle ? root.coreMs : Motion.lockContentMs
                 easing.type: Easing.OutCubic
             }
         }
+        SequentialAnimation {
+            PauseAnimation { duration: root.sumiStyle ? root.detailDelay : root.coreDelay + Motion.lockStagger }
+            NumberAnimation {
+                target: root; property: "details"; to: 1
+                duration: root.sumiStyle ? Math.max(0, root.openMs - root.detailDelay) : Motion.lockContentMs
+                easing.type: Easing.OutCubic
+            }
+        }
+        // la forma del estilo lleva su propio reloj (Reveal); esto sólo cubre su duración para avisar al final
+        PauseAnimation { duration: root.sumiStyle ? 0 : root.openMs }
         onFinished: root.reportEnter()
     }
-    ParallelAnimation {
+    SequentialAnimation {
         id: exitAnim
-        NumberAnimation { target: root; property: "veil"; to: 0; duration: Motion.lockClose; easing.type: Easing.InCubic }
-        NumberAnimation { target: root; property: "core"; to: 0; duration: Motion.lockClose; easing.type: Easing.InCubic }
-        NumberAnimation {
-            target: root; property: "details"; to: 0
-            duration: Math.round(Motion.lockClose * (Motion.still ? 1 : 0.85))
-            easing.type: Easing.InCubic
+        // el pulso de éxito (LockField) se ve con el panel aún en su sitio
+        PauseAnimation { duration: Motion.lockAccept }
+        ScriptAction { script: if (!root.sumiStyle) root.panelShown = false; }
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "veil"; to: 0; duration: root.closeMs; easing.type: Easing.InCubic }
+            // Sumi: el centro se recoge y los laterales vuelven hacia él. Con un estilo de ventana el contenido se
+            // va dentro del panel; sólo la energía, fuera de él, se funde con el fondo (`veil`).
+            NumberAnimation {
+                target: root; property: "core"; to: root.sumiStyle ? 0 : 1
+                duration: root.closeMs; easing.type: Easing.InCubic
+            }
+            NumberAnimation {
+                target: root; property: "details"; to: root.sumiStyle ? 0 : 1
+                duration: Math.round(root.closeMs * (Motion.still ? 1 : 0.85))
+                easing.type: Easing.InCubic
+            }
         }
         onFinished: root.reportLeave()
     }
@@ -116,7 +176,7 @@ Item {
         Qt.callLater(function () { root.context.leaveDone(root.screenName); });
     }
     /** Para medir «cero animaciones en reposo». */
-    readonly property bool animating: entryAnim.running || exitAnim.running
+    readonly property bool animating: entryAnim.running || exitAnim.running || root.panelMoving
 
     // ── cuenta atrás de faillock: sólo corre mientras se ve ──────────────────
     property real nowSec: Date.now() / 1000
@@ -322,7 +382,10 @@ Item {
         generation: root.backdropGeneration
         dim: root.backdropDim
         brightness: root.backdropBrightness
-        opacity: root.veil
+        // El escritorio se desenfoca y oscurece al entrar (y se aclara al salir): la captura aparece pronto, casi
+        // nítida, sobre el escritorio igual que ella, y el desenfoque y el velo crecen con `veil`.
+        opacity: Motion.still ? root.veil : Math.min(1, root.veil * 2.5)
+        blurIn: Motion.still ? 1 : root.veil
     }
 
     /**
@@ -353,6 +416,23 @@ Item {
         centerProgress: root.core
         around: root.details
         sideTravel: Motion.still ? 0 : Metrics.sp5 * root.s * (1 - root.details)
+        styleName: root.styleName
+        acceptMs: Motion.lockAccept + root.closeMs
+
+        // el panel con el estilo de ventana: la misma pieza que Settings, Audio y las demás ventanas flotantes
+        opacity: root.sumiStyle ? 1 : panelRv.opacity
+        scale: root.sumiStyle ? 1 : panelRv.scale
+        transformOrigin: Item.Center
+        transform: [
+            Translate { y: root.sumiStyle ? 0 : panelRv.dy },
+            Scale {
+                origin.x: board.width / 2; origin.y: board.height / 2
+                xScale: root.sumiStyle ? 1 : panelRv.sx; yScale: root.sumiStyle ? 1 : panelRv.sy
+            }
+        ]
+        layer.enabled: panelRv.effect && panelRv.progress > 0.001 && panelRv.progress < 0.999
+        layer.effect: panelRv.effect ? boardFx : null
+        Component { id: boardFx; RevealEffect { rv: panelRv; s: root.s; radius: Metrics.openCorner * root.s } }
         onStep: (dir) => root.stepFocus(dir)
         // el control enfocado se fue con la lista nueva: al primero que quede ahí, o al campo (§8)
         onInteracted: root.activity()
@@ -365,26 +445,38 @@ Item {
     }
     readonly property bool narrow: board.narrow
 
-    // pantallas sin foco: fondo, hora y fecha
+    // pantallas sin foco: fondo, hora y fecha sin panel, como la calma de LockAuthColumn: blanco y sombra neutra
+    RectangularShadow {
+        visible: !root.hero
+        x: nhCol.x - 96 * root.s
+        y: nhCol.y - 64 * root.s
+        width: nhCol.width + 192 * root.s
+        height: nhCol.height + 128 * root.s
+        radius: height / 2
+        blur: 150 * root.s
+        color: Qt.rgba(0, 0, 0, 0.6)
+        opacity: nhCol.opacity
+    }
     Column {
+        id: nhCol
         visible: !root.hero
         anchors.centerIn: parent
         spacing: Metrics.sp2 * root.s
-        opacity: root.core
-        Text {
+        opacity: root.core * (root.leaving ? root.veil : 1)
+        RollingClock {
             id: nhClock
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.time
-            color: Theme.fg
-            font.family: Typography.uiChosen
-            font.weight: Typography.wStrong
-            font.pixelSize: Typography.lockBoardTime * root.s
-            font.features: { "tnum": 1 }
+            color: "white"
+            family: Typography.uiChosen
+            weight: Typography.wStrong
+            pixelSize: Typography.lockBoardTime * root.s
+            rolling: root.visible && !root.hero
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.longDate.toUpperCase()
-            color: Theme.fgVariant
+            color: "white"
             font.family: Typography.uiChosen
             font.weight: Typography.wMedium
             font.pixelSize: Typography.lockDate * root.s
@@ -399,8 +491,8 @@ Item {
         y: board.y + board.height + root.powerGap
         spacing: Metrics.sp1 * root.s
         visible: root.hero
-        // con el popup, y fuera en calma
-        opacity: root.calm ? 0 : root.details
+        // con los laterales al entrar, con el fondo al salir, y fuera en calma
+        opacity: root.calm ? 0 : root.details * (root.leaving ? root.veil : 1)
         Behavior on opacity {
             enabled: !entryAnim.running && !exitAnim.running
             NumberAnimation { duration: root.calm && !Motion.off ? Motion.lockCalmFade : Motion.fast; easing.type: Easing.InOutCubic }

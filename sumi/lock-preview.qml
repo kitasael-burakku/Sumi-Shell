@@ -93,8 +93,8 @@ ShellRoot {
     }
     readonly property real s: root.scaleOverride > 0 ? root.scaleOverride : Settings.uiScale
     /** Para afinar el velo con capturas (FONDO §4). */
-    property real dim: 0.62
-    property real brightness: -0.25
+    property real dim: -1
+    property real brightness: 0
 
     readonly property var shown: root.screensCsv.length > 0
         ? root.screensCsv.split(",").map(n => n.trim()).filter(n => n.length > 0)

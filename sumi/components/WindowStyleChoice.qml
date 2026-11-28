@@ -17,6 +17,9 @@ import "../theme"
  * 2026-11-21 (ADR-40): también los estilos de forma. `kind` elige la familia: "window" (Window style, lo de siempre),
  * "bar" (Bar panels) o "island" (Island style); nombres y notas de `Motion.styleNames/styleParams`, y la miniatura de
  * la familia (WindowStylePreview o ShapeStylePreview).
+ *
+ * 2026-11-28: "lock" (Lock style), diez tarjetas (Same as windows, Sumi y los ocho de ventana) con LockStylePreview;
+ * la rejilla prueba también 5 columnas.
  */
 Item {
     id: root
@@ -65,7 +68,7 @@ Item {
     FontMetrics { id: noteMetrics; font.family: Typography.ui; font.pixelSize: Typography.caption * root.s }
     readonly property int columns: {
         const n = Motion.styleNames(root.kind).length;
-        for (const c of [n, 4, 2]) if (n % c === 0 && c * root.minCardW + (c - 1) * root.gap <= root.availableWidth) return c;
+        for (const c of [n, 5, 4, 2]) if (n % c === 0 && c * root.minCardW + (c - 1) * root.gap <= root.availableWidth) return c;
         return 1;
     }
 
@@ -122,10 +125,14 @@ Item {
                     Loader {
                         id: preview
                         width: parent.width
-                        sourceComponent: root.kind === "window" ? winPreview : shapePreview
+                        sourceComponent: root.kind === "window" ? winPreview : root.kind === "lock" ? lockPreview : shapePreview
                         Component {
                             id: winPreview
                             WindowStylePreview { s: root.s; style: card.modelData; playing: col.playing }
+                        }
+                        Component {
+                            id: lockPreview
+                            LockStylePreview { s: root.s; style: card.modelData; playing: col.playing }
                         }
                         Component {
                             id: shapePreview

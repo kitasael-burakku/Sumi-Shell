@@ -7,6 +7,7 @@ Choice Choice.qml
 WindowStyleChoice WindowStyleChoice.qml
 WindowStylePreview WindowStylePreview.qml
 ShapeStylePreview ShapeStylePreview.qml
+LockStylePreview LockStylePreview.qml
 NotifPositionChoice NotifPositionChoice.qml
 BarEdgeChoice BarEdgeChoice.qml
 SettingRow SettingRow.qml

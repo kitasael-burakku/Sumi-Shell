@@ -177,6 +177,9 @@ Surface {
                 ] },
                 { title: "Capsule & Edge", key: "Island style", rows: [
                     { id: "islandStyle", prop: "islandStyle", kind: "windowStyle", family: "island", name: "Capsule style" }
+                ] },
+                { title: "Lock screen", key: "Lock style", rows: [
+                    { id: "lockStyle", prop: "lockStyle", kind: "windowStyle", family: "lock", name: "Lock style" }
                 ] }
             ] },
             { id: "interaction", title: "Interaction", sections: [
@@ -1942,6 +1945,8 @@ Surface {
         windowStyle: ["window", "windows", "style", "minimalist", "expressive", "gnome", "open", "close", "dialog", "lift",
             "power", "power-on", "crt", "turn on", "transition", "bloom", "capsule", "mochi", "bounce", "spring", "ink",
             "scroll", "unroll", "mist", "blur", "focus", "animation", "effect"],
+        lockStyle: ["lock", "lock screen", "unlock", "style", "animation", "transition", "sumi", "minimalist", "expressive",
+            "power-on", "bloom", "mochi", "ink", "scroll", "mist", "open", "close", "effect"],
         barPanels: ["bar", "dynamic bar", "panel", "panels", "slide", "drawer", "grow", "open", "animation", "spring", "bounce", "unfold",
             "strip", "flap", "fold", "bloom", "glow", "ink", "drop", "mist", "blur", "focus", "style", "effect"],
         islandStyle: ["capsule", "dynamic capsule", "edge", "island", "dynamic island", "notch", "style", "open", "animation", "fluid", "mochi", "bounce", "drop",
@@ -3852,6 +3857,8 @@ Surface {
                 : "How panels open from the Dynamic Bar and go back into it";
         case "islandStyle": return Settings.motionMode === "off" ? "Paused · motion is Off"
                 : "How the capsule and Edge open a panel and close it";
+        case "lockStyle": return Settings.motionMode === "off" ? "Paused · motion is Off"
+                : "How the lock screen appears and leaves after you unlock";
         case "windowStyle": return Settings.motionMode === "off" ? "Paused · motion is Off"
                 : "How floating windows and notification popups open, close and change section";
         case "speed": return Settings.motionSpeed > 1 ? "Quicker transitions · waits and confirmations never change"

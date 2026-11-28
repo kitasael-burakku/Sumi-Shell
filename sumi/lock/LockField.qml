@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import "../components"
 import "../theme"
 
@@ -27,6 +28,8 @@ Rectangle {
     /** Esta es la pantalla que manda y tiene el teclado: su campo refleja el buffer. */
     property bool owner: false
     property bool accepted: false
+    /** Lo que dura la salida tras el éxito (pulso + cierre): el pulso se extiende sobre ella. */
+    property int acceptMs: 0
     /** Tab / Mayús+Tab dentro del campo: la superficie decide adónde (recorrido del Lock). */
     signal step(int dir)
 
@@ -54,6 +57,43 @@ Rectangle {
     property real shakeOffset: 0
     property bool readyForDots: false
     Component.onCompleted: Qt.callLater(function () { root.readyForDots = true; })
+
+    /**
+     * Éxito (2026-11-28): el ✓ se dibuja de un trazo y el borde lanza un pulso verde que se abre y se apaga mientras
+     * el panel sale. Con Reduced, el pulso no crece (sólo se apaga); con Off, el ✓ aparece entero y sin pulso.
+     */
+    property real checkDraw: 1
+    property real pulse: 0
+    onAcceptedChanged: {
+        if (!root.accepted) { success.stop(); root.checkDraw = 1; root.pulse = 0; return; }
+        if (Motion.off) { root.checkDraw = 1; return; }
+        root.checkDraw = 0;
+        success.restart();
+    }
+    ParallelAnimation {
+        id: success
+        NumberAnimation {
+            target: root; property: "checkDraw"; from: 0; to: 1
+            duration: Math.max(1, Motion.lockAccept); easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root; property: "pulse"; from: 0; to: 1
+            duration: Math.max(1, root.acceptMs > 0 ? root.acceptMs : Motion.lockAccept * 2); easing.type: Easing.OutCubic
+        }
+    }
+    Rectangle {
+        id: pulseRing
+        visible: root.accepted && root.pulse > 0 && root.pulse < 1
+        anchors.centerIn: parent
+        width: root.width
+        height: root.height
+        radius: root.radius
+        color: "transparent"
+        border.width: Math.max(1, 2 * root.s)
+        border.color: Theme.ok
+        scale: Motion.still ? 1 : 1 + 0.10 * root.pulse
+        opacity: 0.75 * (1 - root.pulse)
+    }
 
     onCheckingChanged: {
         waitIndicator.stop();
@@ -170,10 +210,41 @@ Rectangle {
 
         Icon {
             anchors.centerIn: parent
-            visible: !root.showChecking || root.accepted
-            name: root.accepted ? "check" : "chevron-right"
+            visible: !root.showChecking && !root.accepted
+            name: "chevron-right"
             size: 16 * root.s
-            color: root.accepted ? Theme.ok : root.canSubmit ? Theme.primary : Theme.fgVariant
+            color: root.canSubmit ? Theme.primary : Theme.fgVariant
+        }
+        // el ✓ de un trazo: primero el tramo corto, luego el largo, en proporción a su longitud
+        Shape {
+            id: tick
+            anchors.centerIn: parent
+            visible: root.accepted
+            width: 14 * root.s
+            height: width
+            preferredRendererType: Shape.CurveRenderer
+            readonly property var a: Qt.point(0.18 * width, 0.54 * height)
+            readonly property var b: Qt.point(0.42 * width, 0.76 * height)
+            readonly property var c: Qt.point(0.84 * width, 0.28 * height)
+            readonly property real l1: Math.hypot(b.x - a.x, b.y - a.y)
+            readonly property real l2: Math.hypot(c.x - b.x, c.y - b.y)
+            readonly property var points: {
+                const d = root.checkDraw * (tick.l1 + tick.l2);
+                if (d <= tick.l1) {
+                    const k = tick.l1 > 0 ? d / tick.l1 : 1;
+                    return [tick.a, Qt.point(tick.a.x + (tick.b.x - tick.a.x) * k, tick.a.y + (tick.b.y - tick.a.y) * k)];
+                }
+                const k = tick.l2 > 0 ? (d - tick.l1) / tick.l2 : 1;
+                return [tick.a, tick.b, Qt.point(tick.b.x + (tick.c.x - tick.b.x) * k, tick.b.y + (tick.c.y - tick.b.y) * k)];
+            }
+            ShapePath {
+                strokeColor: Theme.ok
+                strokeWidth: Math.max(1.5, 2 * root.s)
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                PathPolyline { path: tick.points }
+            }
         }
         Item {
             id: spinner

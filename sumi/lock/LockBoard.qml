@@ -79,6 +79,66 @@ Item {
     property real around: 1
     property real centerProgress: 1
     property real sideTravel: 0
+    /** El estilo del bloqueo ("sumi" o uno de ventana) y lo que dura la salida tras el éxito (pulso + cierre). */
+    property string styleName: "sumi"
+    property int acceptMs: 0
+
+    /**
+     * Despertar de la calma (2026-11-28): el vidrio del panel vuelve a abrir con el estilo del bloqueo (Reveal, como al
+     * entrar) y los laterales entran después, desde el centro. Al calmarse se funde como siempre (`lockCalmFade`) y,
+     * ya invisible, el Reveal pasa a cerrado sin animar. Con Sumi sólo vuelven los laterales.
+     */
+    readonly property bool wakeStyled: root.styleName !== "sumi"
+    property bool glassShown: true
+    property bool glassAnimated: true
+    Reveal {
+        id: wakeRv
+        style: root.wakeStyled ? root.styleName : "minimalist"
+        s: root.s
+        animated: root.glassAnimated && root.wakeStyled
+        shown: root.glassShown
+    }
+    Timer {
+        id: calmSettle
+        interval: Motion.lockCalmFade + 50
+        onTriggered: if (root.calm) {
+            root.glassAnimated = false;
+            root.glassShown = false;
+            root.glassAnimated = true;
+        }
+    }
+    property real wake: 1
+    NumberAnimation {
+        id: wakeAnim
+        target: root; property: "wake"; from: 0; to: 1
+        duration: Motion.lockContentMs
+        easing.type: Easing.OutCubic
+    }
+    SequentialAnimation {
+        id: wakeSeq
+        PauseAnimation { duration: root.wakeStyled ? Math.round(Motion.lockOpenFor(root.styleName) * 0.35) + Motion.lockStagger : Motion.lockStagger }
+        ScriptAction { script: wakeAnim.restart() }
+    }
+    onCalmChanged: {
+        if (root.calm) {
+            wakeSeq.stop(); wakeAnim.stop();
+            root.wake = 1;
+            calmSettle.restart();
+        } else {
+            calmSettle.stop();
+            if (Motion.off) { root.glassShown = true; return; }
+            // sólo si el vidrio llegó a cerrarse: un despertar a mitad del fundido vuelve con el fundido
+            if (!root.glassShown) {
+                root.wake = 0;
+                root.glassShown = true;
+                wakeSeq.restart();
+            }
+        }
+    }
+    readonly property real wakeTravel: Motion.still ? 0 : Metrics.sp5 * root.s * (1 - root.wake)
+    /** Con un estilo de ventana el vidrio ES la forma (Reveal en la superficie): no espera a los laterales (`around`). */
+    readonly property real glassOpacity: root.wakeStyled ? wakeRv.opacity : 1
+    readonly property bool glassLayer: root.wakeStyled && wakeRv.effect && wakeRv.progress > 0.001 && wakeRv.progress < 0.999
     function authItem() { return root.narrow ? slimAuthLoader.item : auth.item; }
     function clockItem() { const a = root.authItem(); return a ? a.clockItem : null; }
     function fieldItem() { const a = root.authItem(); return a ? a.fieldItem : null; }
@@ -104,6 +164,7 @@ Item {
         visible: !root.narrow
 
         Glass {
+            id: wideGlass
             anchors.fill: parent
             s: root.s
             color: root.panelFill
@@ -113,7 +174,16 @@ Item {
             // nunca marcas ni efectos
             geometryOnly: true
             radius: Metrics.openCorner * root.s
-            opacity: root.sideOpacity * root.around
+            opacity: root.sideOpacity * (root.wakeStyled ? 1 : root.around) * root.glassOpacity
+            scale: root.wakeStyled ? wakeRv.scale : 1
+            transform: [
+                Translate { y: root.wakeStyled ? wakeRv.dy : 0 },
+                Scale { origin.x: wideGlass.width / 2; origin.y: wideGlass.height / 2
+                        xScale: root.wakeStyled ? wakeRv.sx : 1; yScale: root.wakeStyled ? wakeRv.sy : 1 }
+            ]
+            layer.enabled: root.glassLayer
+            layer.effect: root.glassLayer ? wideFx : null
+            Component { id: wideFx; RevealEffect { rv: wakeRv; s: root.s; radius: Metrics.openCorner * root.s } }
         }
 
         RowLayout {
@@ -124,12 +194,12 @@ Item {
             // ── izquierda ────────────────────────────────────────────────
             ColumnLayout {
                 enabled: root.around > 0 && !root.accepted
-                transform: Translate { x: root.sideTravel }
+                transform: Translate { x: root.sideTravel + root.wakeTravel }
                 Layout.preferredWidth: Metrics.lockColLeft * root.s
                 Layout.minimumWidth: Metrics.lockColLeftMin * root.s
                 Layout.fillHeight: true
                 spacing: Metrics.sp2 * root.s
-                opacity: root.sideOpacity * root.around
+                opacity: root.sideOpacity * root.around * root.wake
 
                 WeatherSummary {
                     visible: root.showWeather
@@ -183,6 +253,7 @@ Item {
                         lockoutText: root.lockoutText
                         fieldEdge: root.fieldEdge
                         accepted: root.accepted
+                        acceptMs: root.acceptMs
                         owner: root.owner && !root.narrow
                         onStep: (dir) => root.step(dir)
                     }
@@ -192,12 +263,12 @@ Item {
             // ── derecha ──────────────────────────────────────────────────
             ColumnLayout {
                 enabled: root.around > 0 && !root.accepted
-                transform: Translate { x: -root.sideTravel }
+                transform: Translate { x: -root.sideTravel - root.wakeTravel }
                 Layout.preferredWidth: Metrics.lockColRight * root.s
                 Layout.minimumWidth: Metrics.lockColRightMin * root.s
                 Layout.fillHeight: true
                 spacing: Metrics.sp2 * root.s
-                opacity: root.sideOpacity * root.around
+                opacity: root.sideOpacity * root.around * root.wake
 
                 // la fila de la privacidad: su sitio reservado arriba a la derecha (LOCK-D20)
                 Item {
@@ -251,7 +322,16 @@ Item {
             // el bloqueo toma SÓLO la geometría del estilo (ADR-34, F7): ver arriba
             geometryOnly: true
             radius: Metrics.openCorner * root.s
-            opacity: root.sideOpacity * root.around
+            opacity: root.sideOpacity * (root.wakeStyled ? 1 : root.around) * root.glassOpacity
+            scale: root.wakeStyled ? wakeRv.scale : 1
+            transform: [
+                Translate { y: root.wakeStyled ? wakeRv.dy : 0 },
+                Scale { origin.x: slimTop.width / 2; origin.y: slimTop.height / 2
+                        xScale: root.wakeStyled ? wakeRv.sx : 1; yScale: root.wakeStyled ? wakeRv.sy : 1 }
+            ]
+            layer.enabled: root.glassLayer
+            layer.effect: root.glassLayer ? slimFx : null
+            Component { id: slimFx; RevealEffect { rv: wakeRv; s: root.s; radius: Metrics.openCorner * root.s } }
         }
         Loader {
             id: slimAuthLoader
@@ -270,6 +350,7 @@ Item {
                 lockoutText: root.lockoutText
                 fieldEdge: root.fieldEdge
                 accepted: root.accepted
+                acceptMs: root.acceptMs
                 owner: root.owner && root.narrow
                 onStep: (dir) => root.step(dir)
             }
@@ -288,7 +369,7 @@ Item {
             id: slimFlick
             visible: root.hasModules
             enabled: root.around > 0 && !root.accepted
-            transform: Translate { y: -root.sideTravel }
+            transform: Translate { y: -root.sideTravel - root.wakeTravel }
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: slimTop.bottom
@@ -297,7 +378,7 @@ Item {
             contentHeight: slimCol.implicitHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            opacity: root.sideOpacity * root.around
+            opacity: root.sideOpacity * root.around * root.wake
 
             Column {
                 id: slimCol

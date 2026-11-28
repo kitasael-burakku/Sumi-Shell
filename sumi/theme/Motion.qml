@@ -147,9 +147,58 @@ Singleton {
     }
     function barPanelParams(name) { return motion.barPanelStyles[name] || motion.barPanelStyles.slide; }
     function islandParams(name) { return motion.islandStyles[name] || motion.islandStyles.fluid; }
-    /** Una familia: "bar" (Bar panels), "island" (Island style) o "window" (Window style), para el selector de Settings. */
-    function styleNames(kind) { return kind === "bar" ? motion.barPanelStyleNames : kind === "island" ? motion.islandStyleNames : motion.windowStyleNames; }
-    function styleParams(kind, name) { return kind === "bar" ? motion.barPanelParams(name) : kind === "island" ? motion.islandParams(name) : motion.windowParams(name); }
+    /**
+     * ESTILO DEL BLOQUEO (2026-11-28): `windows` sigue el Window style (de serie), `sumi` es la coreografía propia del
+     * bloqueo (reloj y campo primero, laterales después) y los otros ocho fijan un estilo de ventana sólo para el
+     * bloqueo. `lockStyle` es ya el nombre efectivo: "sumi" o uno de `windowStyles`.
+     */
+    readonly property var lockStyleNames: ["windows", "sumi"].concat(motion.windowStyleNames)
+    property string lockStyleOverride: ""
+    readonly property string lockStyleChoice: {
+        const v = motion.lockStyleOverride !== "" ? motion.lockStyleOverride : Settings.lockStyle;
+        return motion.lockStyleNames.indexOf(v) >= 0 ? v : "windows";
+    }
+    function resolveLockStyle(v) {
+        if (v === "sumi") return "sumi";
+        if (v !== "windows" && motion.windowStyles[v]) return v;
+        return motion.windowStyles[motion.windowStyle] ? motion.windowStyle : "minimalist";
+    }
+    readonly property string lockStyle: motion.resolveLockStyle(motion.lockStyleChoice)
+    function lockParams(name) {
+        if (name === "windows") {
+            const w = motion.windowParams(motion.windowStyle);
+            return { label: "Same as windows", note: "Follows Window style · " + w.label, timeline: w.timeline, openMs: w.openMs, closeMs: w.closeMs };
+        }
+        if (name === "sumi")
+            return { label: "Sumi", note: "Clock and field first, then the sides" };
+        return motion.windowParams(name);
+    }
+    /**
+     * Duraciones del bloqueo con un estilo (ms reales, ya con velocidad y modo). La apertura cubre la forma más el
+     * escalonado del contenido (`lockStagger`); los muelles (Minimalist, Expressive) usan su tiempo nominal.
+     */
+    function lockOpenFor(name) {
+        if (motion.off) return 0;
+        if (name === "sumi") return motion.lockOpen;
+        const p = motion.windowParams(name);
+        return p.timeline ? motion.styleMs(p.openMs) : motion.dur(name === "expressive" ? 260 : 180);
+    }
+    function lockCloseFor(name) {
+        if (motion.off) return 0;
+        if (name === "sumi") return motion.lockClose;
+        const p = motion.windowParams(name);
+        return p.timeline ? motion.styleMs(p.closeMs) : motion.dur(name === "expressive" ? 170 : 120);
+    }
+    /** Cuánto tarda en entrar el contenido tras la forma: reloj y campo a 0, laterales a `lockStagger`. */
+    readonly property int lockStagger: motion.off ? 0 : motion.dur(motion.still ? 60 : 110)
+    readonly property int lockContentMs: motion.off ? 0 : motion.dur(motion.still ? 160 : 240)
+    /** El pulso de éxito antes de salir: lo justo para verlo, sin retrasar el desbloqueo más de un parpadeo. */
+    readonly property int lockAccept: motion.off ? 0 : motion.dur(motion.still ? 90 : 170)
+    /** Los dígitos del reloj que ruedan al cambiar el minuto. */
+    readonly property int lockDigit: motion.off ? 0 : motion.dur(motion.still ? 160 : 320)
+    /** Una familia: "bar" (Bar panels), "island" (Island style), "lock" (Lock style) o "window" (Window style), para el selector de Settings. */
+    function styleNames(kind) { return kind === "bar" ? motion.barPanelStyleNames : kind === "island" ? motion.islandStyleNames : kind === "lock" ? motion.lockStyleNames : motion.windowStyleNames; }
+    function styleParams(kind, name) { return kind === "bar" ? motion.barPanelParams(name) : kind === "island" ? motion.islandParams(name) : kind === "lock" ? motion.lockParams(name) : motion.windowParams(name); }
 
     // Esperas de interacción: no son animaciones y no se escalan.
     readonly property int holdMs: 600
@@ -165,7 +214,13 @@ Singleton {
     readonly property int lockCheckDelay: 140
     readonly property int lockCalmMs: 10000
     readonly property int lockCalmFade: 600
-    readonly property int lockCap: 900
+    /**
+     * El tope de cada fase (LockSession `capTimer`): nunca menos de 900 ms y siempre por encima de la transición del
+     * estilo elegido (Mochi con Slower y el escalonado pasaba de 900 y se cortaba a mitad).
+     */
+    readonly property int lockCap: Math.max(900, 400 + Math.max(
+        motion.lockOpenFor(motion.lockStyle) + motion.lockStagger + motion.lockContentMs,
+        motion.lockAccept + motion.lockCloseFor(motion.lockStyle)))
     readonly property int lockBufferMs: 30000
 
     readonly property real chaseTau: (motion.still ? 0.035 : 0.062) / motion.speed

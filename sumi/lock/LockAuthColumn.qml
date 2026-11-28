@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import "../components"
 import "../services"
 import "../theme"
@@ -22,6 +23,7 @@ Item {
     property bool compact: false
     property bool showName: true
     property bool accepted: false
+    property int acceptMs: 0
     property bool focused: false
     property bool calm: false
     property string lockoutText: ""
@@ -58,26 +60,50 @@ Item {
     implicitWidth: Math.max(field.implicitWidth, timeText.implicitWidth)
     implicitHeight: col.implicitHeight
 
+    /**
+     * Sin panel (la calma), la hora y la fecha se leen directamente sobre el fondo, que ya no se oscurece entero
+     * (LockBackdrop). Como en la pantalla de bloqueo de un móvil: pasan a blanco con una sombra negra amplia y muy
+     * difusa, en los dos temas, porque lo que hay detrás es el escritorio y no el tema. Con el panel, los colores del
+     * tema. Todo sigue a la calma (`bare`).
+     */
+    readonly property real bare: 1 - root.restOpacity
+    function mix(a, b, t) { return Qt.rgba(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t, a.a + (b.a - a.a) * t); }
+    RectangularShadow {
+        readonly property real padX: 96 * root.s
+        readonly property real padY: 64 * root.s
+        readonly property real x0: col.x + Math.min(timeText.x, dateText.x)
+        readonly property real x1: col.x + Math.max(timeText.x + timeText.width, dateText.x + dateText.width)
+        x: x0 - padX
+        y: col.y + timeText.y - padY
+        width: x1 - x0 + 2 * padX
+        height: dateText.y + dateText.height - timeText.y + 2 * padY
+        radius: height / 2
+        blur: 150 * root.s
+        color: Qt.rgba(0, 0, 0, 0.6)
+        opacity: root.bare
+        visible: opacity > 0.01
+    }
+
     Column {
         id: col
         width: parent.width
         spacing: (root.compact ? Metrics.sp2 : Metrics.sp3) * root.s
 
-        Text {
+        RollingClock {
             id: timeText
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.time
-            color: Theme.fg
-            font.family: Typography.uiChosen
-            font.weight: Typography.wStrong
-            font.pixelSize: (root.compact ? Typography.lockNarrowTime : Typography.lockBoardTime) * root.s
-            font.features: { "tnum": 1 }
-            Accessible.name: "Time " + Clock.time
+            color: root.mix(Theme.fg, Qt.rgba(1, 1, 1, 1), root.bare)
+            family: Typography.uiChosen
+            weight: Typography.wStrong
+            pixelSize: (root.compact ? Typography.lockNarrowTime : Typography.lockBoardTime) * root.s
+            rolling: root.visible
         }
         Text {
+            id: dateText
             anchors.horizontalCenter: parent.horizontalCenter
             text: Clock.longDate.toUpperCase()
-            color: Theme.fgVariant
+            color: root.mix(Theme.fgVariant, Qt.rgba(1, 1, 1, 1), root.bare)
             font.family: Typography.uiChosen
             font.weight: Typography.wMedium
             font.pixelSize: Typography.lockDate * root.s
@@ -146,6 +172,7 @@ Item {
             onStep: (dir) => root.step(dir)
             opacity: root.restOpacity
             accepted: root.accepted
+            acceptMs: root.acceptMs
         }
 
         // ── estado: dos líneas con su hueco siempre reservado ────────────────

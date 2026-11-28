@@ -80,6 +80,8 @@ Singleton {
     property string barPanels: Schema.def("barPanels")
     /** 2026-11-21 (ADR-40): cómo se abre la forma en la island y el notch, sin la barra. `theme/Motion` los lee. */
     property string islandStyle: Schema.def("islandStyle")
+    /** 2026-11-28: entrada y salida del bloqueo (`windows` = Window style, `sumi` o un estilo fijo). `theme/Motion` lo lee. */
+    property string lockStyle: Schema.def("lockStyle")
     /** 9C-2: Calendar (primer día: locale · monday · sunday; reloj 24h · 12h). */
     property string calendarFirstDay: Schema.def("calendarFirstDay")
     property string clockFormat: Schema.def("clockFormat")

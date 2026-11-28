@@ -169,6 +169,14 @@ var CATALOG = [
     { id: "shell.animations.islandStyle", prop: "islandStyle", type: "enum",
       def: "fluid", values: ["fluid", "mochi", "drop", "jelly", "poweron", "bloom", "ink", "mist"], section: "Animations", subsection: "Island style",
       owner: "shell", apply: "immediate", preset: "motion" },
+    /**
+     * 2026-11-28: cómo entra y sale la pantalla de bloqueo. `windows` (de serie) sigue el Window style; `sumi` es la
+     * coreografía propia del bloqueo (centro primero, laterales después); el resto fija uno de los ocho estilos de
+     * ventana sólo para el bloqueo. Ausente → `windows`, sin migración.
+     */
+    { id: "shell.animations.lockStyle", prop: "lockStyle", type: "enum",
+      def: "windows", values: ["windows", "sumi", "minimalist", "expressive", "poweron", "bloom", "mochi", "ink", "scroll", "mist"],
+      section: "Animations", subsection: "Lock style", owner: "shell", apply: "immediate", preset: "motion" },
     { id: "shell.surfaces.unloadSeconds", prop: "unloadSec", legacy: "unloadSec", type: "real",
       def: 60, min: 5, max: 600, section: "Lifecycle", owner: "shell", apply: "immediate" },
     { id: "shell.surfaces.minimizerThumbnails", prop: "minimizerThumbs", legacy: "minimizerThumbs", type: "bool",

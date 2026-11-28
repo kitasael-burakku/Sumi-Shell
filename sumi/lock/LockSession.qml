@@ -539,8 +539,10 @@ Scope {
                             screenName: surf.scrName
                             hero: surf.hero
                             focused: frame.winActive
-                            // la pantalla de antes de bloquear, desenfocada; sin ella, el respaldo opaco (no el wallpaper)
-                            backdropSource: root.captureFor(surf.scrName)
+                            // la pantalla de antes de bloquear, desenfocada. Sin ella (suspensión, recuperación o una
+                            // captura que no llegó) el wallpaper quieto, también desenfocado: nunca un plano del tema
+                            // (2026-11-28; antes el respaldo opaco, casi negro en oscuro y blanco en claro)
+                            backdropSource: root.captureFor(surf.scrName) || Wallpaper.lockStillPath
                             backdropGeneration: root.captureGen
                             home: root.phase === "leaving" ? root.restTarget(surf.scrName) : root.snapshot(surf.scrName)
                         }
